@@ -74,7 +74,7 @@ export default function Scene({ potion, glow, motion = 1, quality = 'alta' }) {
         </Suspense>
         <Liquid color={potion} glow={glow} motion={motion} pointer={pointer} />
         {quality !== 'baja' && (
-          <Steam glow={glow} motion={motion} count={quality === 'media' ? 450 : 1100} />
+          <Steam glow={glow} motion={motion} count={quality === 'media' ? 320 : 700} />
         )}
       </group>
     </>

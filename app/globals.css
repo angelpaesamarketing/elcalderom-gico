@@ -13,11 +13,21 @@
   box-sizing: border-box;
 }
 
+html {
+  background: var(--negro);
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
 html,
 body {
   margin: 0;
   padding: 0;
-  background: var(--negro);
   color: var(--pergamino);
   font-family: var(--fuente-texto), system-ui, -apple-system, 'Segoe UI', sans-serif;
   -webkit-font-smoothing: antialiased;
@@ -46,7 +56,7 @@ a {
 .escena {
   position: fixed;
   inset: 0;
-  z-index: 0;
+  z-index: 1;
   pointer-events: none;
 }
 
@@ -60,11 +70,11 @@ a {
 .escena-velo {
   position: fixed;
   inset: 0;
-  z-index: 1;
+  z-index: 2;
   pointer-events: none;
   background:
     radial-gradient(120% 90% at 65% 55%, transparent 35%, rgba(7, 6, 10, 0.55) 100%),
-    linear-gradient(90deg, rgba(7, 6, 10, 0.92) 0%, rgba(7, 6, 10, 0.6) 38%, transparent 62%);
+    linear-gradient(90deg, rgba(7, 6, 10, 0.96) 0%, rgba(7, 6, 10, 0.82) 30%, rgba(7, 6, 10, 0.3) 52%, transparent 68%);
 }
 
 @media (max-width: 899px) {
@@ -168,6 +178,7 @@ a {
 }
 
 .seccion {
+  position: relative;
   min-height: 100svh;
   display: flex;
   align-items: center;
@@ -175,6 +186,8 @@ a {
 }
 
 .bloque {
+  position: relative;
+  z-index: 1;
   max-width: 460px;
 }
 
@@ -245,5 +258,209 @@ a {
     opacity: 1;
     transform: none;
     transition: none;
+  }
+}
+
+/* ---------- fondos de ambiente ---------- */
+
+.fondos {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+}
+
+.fondo {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  opacity: 0;
+  transform: scale(1.06);
+  /* muy apagados: son atmósfera, no protagonistas */
+  filter: brightness(0.36) saturate(0.8) blur(3px);
+  transition: opacity 1.1s ease, transform 2.4s ease;
+}
+
+.fondo[data-visible='true'] {
+  opacity: 0.34;
+  transform: scale(1);
+}
+
+/* ---------- objetos flotantes ---------- */
+
+.objetos {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.objeto-deriva {
+  position: absolute;
+  display: block;
+  animation: derivar 14s ease-in-out infinite;
+}
+
+.objeto {
+  display: block;
+  max-width: 42vw;
+  opacity: 0;
+  transform: rotate(var(--giro))
+    translate3d(0, calc(var(--desplazamiento, 0) * var(--profundidad) * -0.06px), 0);
+  transition: opacity 1.4s ease;
+  will-change: transform;
+}
+
+.objeto[data-visible='true'] {
+  /* los del fondo se quedan más tenues, los de delante se ven más */
+  opacity: calc(0.6 - var(--profundidad) * 0.8);
+}
+
+@keyframes derivar {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+  50% {
+    transform: translate3d(6px, -16px, 0);
+  }
+}
+
+/* ---------- pista de scroll ---------- */
+
+.pista {
+  position: absolute;
+  left: clamp(16px, 5vw, 64px);
+  bottom: 42px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.68rem;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--pergamino-tenue);
+  opacity: 0.6;
+}
+
+.pista-linea {
+  display: block;
+  width: 46px;
+  height: 1px;
+  background: currentColor;
+  transform-origin: left center;
+  animation: tirar 2.6s ease-in-out infinite;
+}
+
+@keyframes tirar {
+  0%,
+  100% {
+    transform: scaleX(0.3);
+    opacity: 0.4;
+  }
+  50% {
+    transform: scaleX(1);
+    opacity: 1;
+  }
+}
+
+/* ---------- respaldo sin WebGL ---------- */
+
+.escena-respaldo {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: min(74%, 620px);
+  transform: translate(-50%, -50%);
+  opacity: 0.9;
+}
+
+/* ---------- pie ---------- */
+
+.pie-rejilla {
+  display: grid;
+  gap: 36px;
+  grid-template-columns: 1fr;
+  max-width: var(--ancho);
+}
+
+@media (min-width: 760px) {
+  .pie-rejilla {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 48px;
+  }
+}
+
+.pie h3 {
+  margin-bottom: 12px;
+  font-size: 1.05rem;
+  color: var(--pergamino);
+}
+
+.pie p {
+  margin: 0 0 18px;
+  line-height: 1.7;
+}
+
+.pie a {
+  border-bottom: 1px solid var(--borde);
+  transition: border-color 0.3s ease;
+}
+
+.pie a:hover {
+  border-color: var(--acento, var(--ambar));
+}
+
+.pie .boton {
+  border-bottom: 1px solid var(--borde);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .objeto-deriva,
+  .pista-linea {
+    animation: none;
+  }
+  .fondo {
+    transition: opacity 0.4s ease;
+  }
+}
+
+/* ---------- móvil ---------- */
+
+@media (max-width: 899px) {
+  .escena {
+    /* el caldero sube y deja el texto abajo, que es donde cae el pulgar */
+    bottom: 40%;
+  }
+
+  /* en vertical no hay sitio: los objetos acabarían encima de los botones */
+  .objetos {
+    display: none;
+  }
+
+  .marca span {
+    font-size: 0.92rem;
+  }
+
+  .cabecera .boton {
+    padding: 11px 16px;
+    font-size: 0.74rem;
+  }
+
+  .fondo[data-visible='true'] {
+    opacity: 0.26;
+  }
+
+  .seccion {
+    align-items: flex-end;
+    padding-bottom: 96px;
+  }
+
+  .objeto {
+    max-width: 38vw;
+  }
+
+  .pista {
+    display: none;
   }
 }

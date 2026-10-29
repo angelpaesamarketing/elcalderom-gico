@@ -36,19 +36,20 @@ const vertexShader = /* glsl */ `
 
     float angle = aSeed * 6.2831853;
     // sale de la boca del caldero y se abre al subir
-    float spread = 0.18 + life * 0.95;
-    float wobble = sin(uTime * 0.7 + aSeed * 12.0 + life * 5.0) * 0.16 * life;
+    float spread = 0.1 + life * life * 1.15;
+    float wobble = sin(uTime * 0.6 + aSeed * 12.0 + life * 4.0) * 0.22 * life;
+    wobble += sin(uTime * 1.3 + aSeed * 31.0) * 0.07 * life;
 
     vec3 pos;
     pos.x = cos(angle) * spread * (0.4 + aSeed * 0.6) + wobble;
     pos.z = sin(angle) * spread * (0.4 + aSeed * 0.6) + wobble * 0.7;
-    pos.y = 0.86 + life * 2.4;
+    pos.y = 0.84 + life * 2.2;
 
     // entra y se deshace
-    vAlpha = smoothstep(0.0, 0.1, life) * (1.0 - smoothstep(0.25, 0.95, life)) * 0.6;
+    vAlpha = smoothstep(0.0, 0.1, life) * (1.0 - smoothstep(0.25, 0.95, life)) * 0.3;
 
     vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
-    gl_PointSize = uSize * (0.5 + life * 2.2) * (14.0 / -mvPosition.z);
+    gl_PointSize = uSize * (0.45 + life * 2.6) * (14.0 / -mvPosition.z);
     gl_Position = projectionMatrix * mvPosition;
   }
 `;
@@ -70,7 +71,7 @@ const fragmentShader = /* glsl */ `
   }
 `;
 
-export default function Steam({ glow, count = 1100, motion = 1 }) {
+export default function Steam({ glow, count = 700, motion = 1 }) {
   const materialRef = useRef(null);
   const targetGlow = useMemo(() => new THREE.Color(glow), [glow]);
   const texture = useMemo(() => makePuffTexture(), []);
@@ -93,7 +94,7 @@ export default function Steam({ glow, count = 1100, motion = 1 }) {
   const uniforms = useMemo(
     () => ({
       uTime: { value: 0 },
-      uSize: { value: 5.5 },
+      uSize: { value: 17 },
       uTexture: { value: texture },
       uColor: { value: new THREE.Color('#b9b0a6') },
       uGlow: { value: new THREE.Color(glow) },

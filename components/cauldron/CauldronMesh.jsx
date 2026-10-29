@@ -2,6 +2,7 @@
 
 import { useMemo } from 'react';
 import * as THREE from 'three';
+import { mergeVertices } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { useTexture } from '@react-three/drei';
 
 // Perfil del caldero, medido sobre las referencias de assets/raw/caldero.
@@ -46,9 +47,18 @@ export default function CauldronMesh() {
 
   const lathe = useMemo(() => {
     const points = PROFILE.map(([x, y]) => new THREE.Vector2(x, y));
-    const geo = new THREE.LatheGeometry(points, 96);
-    geo.computeVertexNormals();
-    return geo;
+    const geo = new THREE.LatheGeometry(points, 160);
+
+    // El torno duplica los vértices donde la vuelta se cierra, y esas normales
+    // sin promediar dibujan una arista de luz vertical en la panza. Se fusionan
+    // antes de recalcularlas para que el cuerpo quede continuo.
+    const soldada = mergeVertices(geo, 1e-4);
+    soldada.computeVertexNormals();
+    geo.dispose();
+
+    // y aun así la costura de la textura se manda al lado de atrás
+    soldada.rotateY(Math.PI * 0.82);
+    return soldada;
   }, []);
 
   const material = useMemo(() => {
