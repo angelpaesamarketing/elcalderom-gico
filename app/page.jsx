@@ -245,8 +245,9 @@ export default function Home() {
         </button>
 
         <div className="cabecera-derecha">
-          <a className="boton solo-ancho-flex" href={LOCAL.telefonoEnlace}>
-            {LOCAL.telefono}
+          {/* el botón que más importa, siempre a la vista */}
+          <a className="boton boton-lleno solo-ancho-flex" href={LOCAL.reservar}>
+            Reservar
           </a>
 
           {/* Por si la órbita no se entiende a la primera: el mismo menú,
@@ -282,10 +283,12 @@ export default function Home() {
               key={opcion.id}
               type="button"
               onClick={() => abrir(opcion.id)}
+              data-destacado={Boolean(opcion.destacado)}
               style={{ '--tinte': opcion.potion }}
             >
               <img src={`/recortables/${opcion.icon}.webp`} alt="" aria-hidden="true" />
-              <span>{opcion.nav}</span>
+              <span>{opcion.destacado ? 'Reservar mesa' : opcion.nav}</span>
+              {opcion.destacado && <span className="cortina-pista">Llámanos y listo</span>}
             </button>
           ))}
         </nav>
@@ -364,6 +367,12 @@ export default function Home() {
           </div>
         )}
       </section>
+
+      {/* En vertical no hay sitio para un botón en la cabecera: va fijo
+          abajo, al alcance del pulgar, y se aparta cuando hay algo abierto. */}
+      <a className="reservar-fijo" href={LOCAL.reservar}>
+        Reservar mesa
+      </a>
 
       <footer className="pie">
         <a href={LOCAL.mapa} target="_blank" rel="noreferrer">
