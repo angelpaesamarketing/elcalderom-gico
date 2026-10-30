@@ -145,6 +145,7 @@ function Detalle({ id }) {
 export default function Home() {
   const [seleccion, setSeleccion] = useState(null);
   const [menu, setMenu] = useState(false);
+  const [pista, setPista] = useState(true);
   const [calidad, setCalidad] = useState('alta');
   const [movimiento, setMovimiento] = useState(1);
   const [webgl, setWebgl] = useState(true);
@@ -191,6 +192,9 @@ export default function Home() {
     giro.current.velocidad = delta * 0.09;
     giro.current.caldero += delta * 0.0022;
     giro.current.arrastre += Math.abs(delta);
+
+    // en cuanto arrastra, la pista sobra
+    if (giro.current.arrastre > 24) setPista(false);
   }, []);
 
   const soltarArrastre = useCallback(() => {
@@ -367,6 +371,16 @@ export default function Home() {
           </div>
         )}
       </section>
+
+      {/* Pista de que la órbita se puede mover. Se va para siempre en cuanto
+          el usuario arrastra una vez. */}
+      <span
+        className="pista-deslizar"
+        aria-hidden="true"
+        data-visible={pista && !seleccion && !menu}
+      >
+        Desliza
+      </span>
 
       {/* En vertical no hay sitio para un botón en la cabecera: va fijo
           abajo, al alcance del pulgar, y se aparta cuando hay algo abierto. */}

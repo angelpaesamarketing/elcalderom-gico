@@ -350,6 +350,42 @@ button {
   filter: brightness(1.12);
 }
 
+/* ---------- pista de arrastre ---------- */
+
+.pista-deslizar {
+  position: fixed;
+  z-index: 11;
+  top: 17%;
+  left: 50%;
+  transform: translateX(-50%) translateY(-6px);
+  display: block;
+  padding: 0 2px;
+  font-size: 0.64rem;
+  letter-spacing: 0.42em;
+  text-transform: uppercase;
+  color: var(--pergamino);
+  opacity: 0;
+  pointer-events: none;
+  text-shadow: 0 2px 16px rgba(0, 0, 0, 0.9);
+  transition: opacity 0.9s ease, transform 0.9s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.pista-deslizar[data-visible='true'] {
+  opacity: 0.34;
+  transform: translateX(-50%) translateY(0);
+  animation: respirar 3.4s ease-in-out infinite;
+}
+
+@keyframes respirar {
+  0%,
+  100% {
+    opacity: 0.22;
+  }
+  50% {
+    opacity: 0.46;
+  }
+}
+
 /* ---------- reservar siempre a la vista ---------- */
 
 .reservar-fijo {
@@ -709,6 +745,12 @@ button {
     transform: translateY(100%);
   }
 
+  .pista-deslizar {
+    top: 31%;
+    font-size: 0.6rem;
+    letter-spacing: 0.38em;
+  }
+
   .reservar-fijo {
     position: fixed;
     z-index: 25;
@@ -744,6 +786,10 @@ button {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .pista-deslizar[data-visible='true'] {
+    animation: none;
+  }
+
   .portada,
   .panel,
   .boton {
