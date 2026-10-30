@@ -14,7 +14,7 @@ const ESTRECHA = { radio: 1.5, hondura: 0.55, altura: 2.05, tamano: 0.46 };
 // Sitio donde se queda el objeto elegido: arriba a la derecha del caldero,
 // lejos del panel de texto.
 const DESTINO_ANCHA = new THREE.Vector3(1.6, 1.45, 0.75);
-const DESTINO_ESTRECHA = new THREE.Vector3(0.72, 2.25, 0.5);
+const DESTINO_ESTRECHA = new THREE.Vector3(-1.32, 1.38, 0.3);
 
 function Orbe({ opcion, textura, indice, total, seleccion, onSelect, giro, motion, forma, destino: DESTINO, compacto }) {
   const grupo = useRef(null);

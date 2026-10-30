@@ -32,7 +32,7 @@ export default function Scene({
   });
 
   // la cámara mira al interior del caldero, no al centro de la escena
-  camera.lookAt(0, compacto ? 0.85 : 0.42, 0);
+  camera.lookAt(0, 0.42, 0);
 
   useFrame((state, delta) => {
     const { x, y } = state.pointer;
@@ -103,7 +103,10 @@ export default function Scene({
       {/* la poción iluminando el labio y las asas desde dentro */}
       <pointLight ref={luzPocion} position={[0, 0.95, 0]} intensity={13} distance={6.5} decay={2} />
 
+      {/* en vertical los objetos en órbita salen diminutos y sin etiqueta:
+          ahí el menú son las tarjetas, y el objeto elegido aparece al abrir */}
       <Suspense fallback={null}>
+        {(!compacto || seleccion) && (
         <OrbitItems
           opciones={opciones}
           seleccion={seleccion}
@@ -112,6 +115,7 @@ export default function Scene({
           motion={motion}
           compacto={compacto}
         />
+        )}
       </Suspense>
 
       <group ref={grupo} position={[0, -0.35, 0]}>

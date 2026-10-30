@@ -245,14 +245,26 @@ export default function Home() {
           Mágico
         </h1>
         <p>
-          Restaurante mágico en Zaragoza. Gira el caldero y elige por dónde empezar.
+          Restaurante mágico en Zaragoza.{' '}
+          {/* en vertical no hay órbita que girar: el menú son las tarjetas */}
+          <span className="solo-ancho">Gira el caldero y elige por dónde empezar.</span>
+          <span className="solo-estrecho">Elige por dónde quieres empezar.</span>
         </p>
 
-        {/* mismo menú en texto: para teclado, lectores y navegadores sin WebGL */}
-        <nav className="menu-texto">
-          {OPCIONES.map((opcion) => (
-            <button key={opcion.id} type="button" onClick={() => setSeleccion(opcion.id)}>
-              {opcion.nav}
+        {/* El mismo menú sirve en las dos pantallas y hace de alternativa
+            accesible: en ancho son enlaces de texto junto a la órbita, en
+            vertical son tarjetas grandes con el objeto de cada opción, que
+            es donde la órbita no se puede tocar. */}
+        <nav className="menu-opciones">
+          {OPCIONES.map((opcion, indice) => (
+            <button
+              key={opcion.id}
+              type="button"
+              onClick={() => setSeleccion(opcion.id)}
+              style={{ '--retardo': `${indice * 45}ms`, '--tinte': opcion.potion }}
+            >
+              <img src={`/recortables/${opcion.icon}.webp`} alt="" aria-hidden="true" />
+              <span>{opcion.nav}</span>
             </button>
           ))}
         </nav>

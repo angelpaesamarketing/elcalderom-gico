@@ -183,6 +183,10 @@ button {
   line-height: 1;
 }
 
+.solo-estrecho {
+  display: none;
+}
+
 .portada p {
   margin: 18px 0 26px;
   font-size: 1rem;
@@ -191,14 +195,19 @@ button {
   max-width: 340px;
 }
 
-.menu-texto {
+.menu-opciones {
   display: flex;
   flex-wrap: wrap;
   gap: 8px 18px;
-  max-width: 400px;
+  max-width: 420px;
 }
 
-.menu-texto button {
+.menu-opciones img {
+  /* en ancho manda la órbita: aquí el menú es solo texto */
+  display: none;
+}
+
+.menu-opciones button {
   font-size: 0.74rem;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -208,7 +217,7 @@ button {
   transition: color 0.3s ease, border-color 0.3s ease;
 }
 
-.menu-texto button:hover {
+.menu-opciones button:hover {
   color: var(--pergamino);
   border-color: var(--acento, var(--ambar));
 }
@@ -416,32 +425,104 @@ button {
 /* ---------- móvil ---------- */
 
 @media (max-width: 899px) {
-  /* el texto cae sobre el caldero: necesita suelo para leerse */
+  /* El caldero se queda arriba, con su mitad de pantalla para él solo, y
+     debajo las tarjetas. Nada se pisa y todo se puede tocar. */
+  .escena {
+    bottom: 58%;
+  }
+
   .escena-velo {
-    background:
-      radial-gradient(130% 100% at 50% 40%, transparent 30%, rgba(7, 6, 10, 0.6) 100%),
-      linear-gradient(180deg, transparent 52%, rgba(7, 6, 10, 0.82) 72%, rgba(7, 6, 10, 0.96) 100%);
+    background: radial-gradient(90% 50% at 50% 21%, transparent 40%, rgba(7, 6, 10, 0.75) 100%);
+  }
+
+  .solo-ancho {
+    display: none;
+  }
+
+  .solo-estrecho {
+    display: inline;
+  }
+
+  .sala {
+    filter: brightness(0.34) saturate(0.85) blur(5px);
   }
 
   .portada {
-    bottom: 96px;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    top: 40%;
     max-width: none;
-    right: clamp(16px, 4vw, 56px);
+    padding: 0 18px 20px;
+    justify-content: flex-end;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+  }
+
+  .portada h1 {
+    font-size: clamp(1.7rem, 7.6vw, 2.2rem);
   }
 
   .portada p {
-    margin: 14px 0 20px;
-    font-size: 0.94rem;
+    margin: 8px 0 14px;
+    font-size: 0.86rem;
+    max-width: none;
   }
 
-  /* el detalle entra como hoja desde abajo, no desde el lado */
+  /* las opciones pasan a ser tarjetas con su objeto: se ven y se tocan */
+  .menu-opciones {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 9px;
+    max-width: none;
+  }
+
+  .menu-opciones button {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 9px 11px;
+    min-height: 56px;
+    border: 1px solid var(--borde);
+    border-radius: 14px;
+    background: rgba(243, 231, 211, 0.04);
+    text-align: left;
+    text-transform: none;
+    letter-spacing: 0.01em;
+    font-size: 0.82rem;
+    color: var(--pergamino);
+    transition: opacity 0.4s ease, transform 0.4s cubic-bezier(0.22, 1, 0.36, 1),
+      border-color 0.3s ease, background 0.3s ease;
+  }
+
+  .menu-opciones button:active {
+    border-color: var(--tinte);
+    background: color-mix(in srgb, var(--tinte) 16%, transparent);
+  }
+
+  .menu-opciones img {
+    display: block;
+    width: 32px;
+    height: 32px;
+    object-fit: contain;
+    flex: none;
+  }
+
+  /* al elegir, las tarjetas se van: el mismo "pum" que en la órbita */
+  .escenario[data-modo='detalle'] .menu-opciones button {
+    opacity: 0;
+    transform: translateY(18px) scale(0.94);
+    transition-delay: var(--retardo);
+  }
+
   .panel {
     top: auto;
     left: 0;
     right: 0;
     width: 100%;
-    height: 82svh;
-    padding: 28px 20px 40px;
+    height: 76svh;
+    padding: 26px 20px 40px;
     border-radius: 22px 22px 0 0;
     border-top: 1px solid var(--borde);
     background: linear-gradient(180deg, rgba(10, 8, 14, 0.98), rgba(7, 6, 10, 0.99));
@@ -452,7 +533,7 @@ button {
     width: 48px;
   }
 
-  .pie-nota {
+  .pie {
     display: none;
   }
 }
