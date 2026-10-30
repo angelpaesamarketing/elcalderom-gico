@@ -54,6 +54,20 @@ button {
   inset: 0;
 }
 
+/* ---------- fondo ---------- */
+
+.sala {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background-image: url('/ambiente/sala.webp');
+  background-size: cover;
+  background-position: center 40%;
+  /* es atmósfera, no protagonista: el caldero manda */
+  filter: brightness(0.46) saturate(0.9) blur(3.5px);
+  transform: scale(1.08);
+}
+
 /* ---------- escena 3D ---------- */
 
 .escena {
@@ -74,7 +88,8 @@ button {
   inset: 0;
   z-index: 2;
   pointer-events: none;
-  background: radial-gradient(130% 100% at 50% 50%, transparent 30%, rgba(7, 6, 10, 0.7) 100%);
+  background:
+    radial-gradient(85% 65% at 50% 48%, rgba(7, 6, 10, 0.38) 0%, rgba(7, 6, 10, 0.7) 55%, rgba(7, 6, 10, 0.92) 100%);
 }
 
 .escena-respaldo {

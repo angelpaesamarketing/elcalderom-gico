@@ -60,9 +60,13 @@ export default function Scene({
     g.angulo += (0.16 * motion + g.velocidad) * delta;
     g.velocidad *= Math.max(0, 1 - delta * 2.4);
 
+    // el empuje del arrastre sobre el caldero se va soltando: vuelve solo
+    g.caldero *= Math.max(0, 1 - delta * 1.1);
+
     if (grupo.current) {
-      // el caldero gira con la órbita, más despacio, y se inclina hacia el ratón
-      grupo.current.rotation.y = g.angulo * 0.55;
+      // balanceo lento y continuo, más lo que le haya empujado el arrastre
+      const balanceo = Math.sin(state.clock.elapsedTime * 0.24) * 0.3 * motion;
+      grupo.current.rotation.y = balanceo + THREE.MathUtils.clamp(g.caldero, -0.75, 0.75);
       if (motion > 0) {
         grupo.current.rotation.x = THREE.MathUtils.lerp(
           grupo.current.rotation.x,

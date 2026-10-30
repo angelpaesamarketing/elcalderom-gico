@@ -2,13 +2,12 @@
 
 import { useMemo } from 'react';
 import * as THREE from 'three';
-import { mergeVertices } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { useTexture } from '@react-three/drei';
 
 // Perfil del caldero, medido sobre las referencias de assets/raw/caldero.
 // Recorre el exterior desde el centro del fondo, pasa por el labio y
 // vuelve a bajar por la pared interior, así la pieza queda cerrada.
-const PROFILE = [
+const PERFIL = [
   [0.0, 0.0],
   [0.3, 0.005],
   [0.55, 0.04],
@@ -39,71 +38,109 @@ const PROFILE = [
   [0.0, 0.045],
 ];
 
-const LEG_ANGLES = [Math.PI / 2, Math.PI / 2 + (2 * Math.PI) / 3, Math.PI / 2 + (4 * Math.PI) / 3];
-const HANDLE_ANGLES = [0, Math.PI];
+const ANGULOS_PATAS = [
+  Math.PI / 2,
+  Math.PI / 2 + (2 * Math.PI) / 3,
+  Math.PI / 2 + (4 * Math.PI) / 3,
+];
+const ANGULOS_ASAS = [0, Math.PI];
+
+// El torno cierra la vuelta duplicando vértices, y ahí las normales quedan
+// sin promediar: se ve una arista de luz recorriendo la panza. Promediarlas
+// por posición las cose sin tocar las UV, que sí deben seguir partidas.
+function suavizarNormales(geometria) {
+  geometria.computeVertexNormals();
+
+  const posiciones = geometria.attributes.position;
+  const normales = geometria.attributes.normal;
+  const grupos = new Map();
+
+  for (let i = 0; i < posiciones.count; i += 1) {
+    const clave = [
+      Math.round(posiciones.getX(i) * 1e4),
+      Math.round(posiciones.getY(i) * 1e4),
+      Math.round(posiciones.getZ(i) * 1e4),
+    ].join('_');
+
+    let grupo = grupos.get(clave);
+    if (!grupo) {
+      grupo = { suma: new THREE.Vector3(), indices: [] };
+      grupos.set(clave, grupo);
+    }
+    grupo.suma.x += normales.getX(i);
+    grupo.suma.y += normales.getY(i);
+    grupo.suma.z += normales.getZ(i);
+    grupo.indices.push(i);
+  }
+
+  grupos.forEach(({ suma, indices }) => {
+    suma.normalize();
+    indices.forEach((i) => normales.setXYZ(i, suma.x, suma.y, suma.z));
+  });
+
+  normales.needsUpdate = true;
+  return geometria;
+}
+
+// Asa de hierro: un tubo que sale del hombro, se abre hacia fuera y vuelve
+// a entrar más abajo. Un toro no servía: las asas reales no son un anillo.
+function crearAsa() {
+  const curva = new THREE.CatmullRomCurve3([
+    new THREE.Vector3(0.78, 1.045, 0),
+    new THREE.Vector3(1.08, 1.07, 0),
+    new THREE.Vector3(1.27, 0.95, 0),
+    new THREE.Vector3(1.17, 0.83, 0),
+    new THREE.Vector3(0.93, 0.815, 0),
+  ]);
+  return new THREE.TubeGeometry(curva, 64, 0.04, 14, false);
+}
 
 export default function CauldronMesh() {
-  const iron = useTexture('/textures/hierro.webp');
+  const hierro = useTexture('/textures/hierro.webp');
 
-  const lathe = useMemo(() => {
-    const points = PROFILE.map(([x, y]) => new THREE.Vector2(x, y));
-    const geo = new THREE.LatheGeometry(points, 160);
-
-    // El torno duplica los vértices donde la vuelta se cierra, y esas normales
-    // sin promediar dibujan una arista de luz vertical en la panza. Se fusionan
-    // antes de recalcularlas para que el cuerpo quede continuo.
-    const soldada = mergeVertices(geo, 1e-4);
-    soldada.computeVertexNormals();
-    geo.dispose();
-
-    // y aun así la costura de la textura se manda al lado de atrás
-    soldada.rotateY(Math.PI * 0.82);
-    return soldada;
+  const cuerpo = useMemo(() => {
+    const puntos = PERFIL.map(([x, y]) => new THREE.Vector2(x, y));
+    return suavizarNormales(new THREE.LatheGeometry(puntos, 160));
   }, []);
 
+  const asa = useMemo(() => crearAsa(), []);
+
   const material = useMemo(() => {
-    iron.wrapS = iron.wrapT = THREE.MirroredRepeatWrapping;
-    iron.repeat.set(4, 2);
-    iron.colorSpace = THREE.SRGBColorSpace;
+    hierro.wrapS = hierro.wrapT = THREE.MirroredRepeatWrapping;
+    hierro.repeat.set(4, 2);
+    hierro.colorSpace = THREE.SRGBColorSpace;
     return new THREE.MeshStandardMaterial({
-      map: iron,
-      bumpMap: iron,
+      map: hierro,
+      bumpMap: hierro,
       bumpScale: 0.06,
       color: '#8a7d70',
       roughness: 0.62,
       metalness: 0.3,
       side: THREE.DoubleSide,
     });
-  }, [iron]);
+  }, [hierro]);
 
   return (
     <group>
-      <mesh geometry={lathe} material={material} castShadow receiveShadow />
+      <mesh geometry={cuerpo} material={material} />
 
-      {LEG_ANGLES.map((angle, i) => (
-        <group key={`pata-${i}`} rotation={[0, angle, 0]}>
-          <mesh
-            material={material}
-            position={[0.58, -0.13, 0]}
-            rotation={[0, 0, 0.21]}
-            castShadow
-          >
+      {ANGULOS_PATAS.map((angulo, i) => (
+        <group key={`pata-${i}`} rotation={[0, angulo, 0]}>
+          <mesh material={material} position={[0.58, -0.13, 0]} rotation={[0, 0, 0.21]}>
             <cylinderGeometry args={[0.105, 0.072, 0.48, 20]} />
           </mesh>
         </group>
       ))}
 
-      {HANDLE_ANGLES.map((angle, i) => (
-        <group key={`asa-${i}`} rotation={[0, angle, 0]}>
-          {/* asa fija en arco, remachada por los dos extremos */}
-          <mesh material={material} position={[0.93, 0.93, 0]} rotation={[Math.PI / 2, 0, 0]}>
-            <torusGeometry args={[0.165, 0.032, 12, 28, Math.PI * 1.15]} />
+      {ANGULOS_ASAS.map((angulo, i) => (
+        <group key={`asa-${i}`} rotation={[0, angulo, 0]}>
+          <mesh geometry={asa} material={material} />
+          {/* remaches de los dos extremos */}
+          <mesh material={material} position={[0.78, 1.045, 0]}>
+            <sphereGeometry args={[0.055, 18, 14]} />
           </mesh>
-          <mesh material={material} position={[0.89, 1.05, 0]}>
-            <sphereGeometry args={[0.052, 16, 12]} />
-          </mesh>
-          <mesh material={material} position={[0.93, 0.81, 0]}>
-            <sphereGeometry args={[0.052, 16, 12]} />
+          <mesh material={material} position={[0.93, 0.815, 0]}>
+            <sphereGeometry args={[0.055, 18, 14]} />
           </mesh>
         </group>
       ))}

@@ -108,7 +108,7 @@ export default function Home() {
   const [movimiento, setMovimiento] = useState(1);
   const [webgl, setWebgl] = useState(true);
 
-  const giro = useRef({ angulo: 0, velocidad: 0, arrastre: 0 });
+  const giro = useRef({ angulo: 0, velocidad: 0, arrastre: 0, caldero: 0 });
   const arrastre = useRef({ activo: false, ultimoX: 0 });
 
   useEffect(() => {
@@ -143,6 +143,7 @@ export default function Home() {
     arrastre.current.ultimoX = evento.clientX;
     giro.current.angulo += delta * 0.005;
     giro.current.velocidad = delta * 0.09;
+    giro.current.caldero += delta * 0.0022;
     giro.current.arrastre += Math.abs(delta);
   }, []);
 
@@ -159,6 +160,9 @@ export default function Home() {
       data-modo={seleccion ? 'detalle' : 'orbita'}
       style={{ '--acento': colores.potion }}
     >
+      {/* la sala de pociones, de fondo: muy oscura y desenfocada */}
+      <div className="sala" aria-hidden="true" />
+
       <div
         className="escena"
         onPointerDown={empezarArrastre}
