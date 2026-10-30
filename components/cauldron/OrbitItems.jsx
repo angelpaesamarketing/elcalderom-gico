@@ -9,12 +9,12 @@ import { useTexture, Html } from '@react-three/drei';
 // delante no se eche encima de la cámara. En vertical no cabe lo mismo, así
 // que se encoge y se sube por encima del caldero.
 const ANCHA = { radio: 2.55, hondura: 0.5, altura: 1.3, tamano: 0.62 };
-const ESTRECHA = { radio: 1.5, hondura: 0.55, altura: 2.05, tamano: 0.46 };
+const ESTRECHA = { radio: 1.38, hondura: 0.52, altura: 2.5, tamano: 0.48 };
 
 // Sitio donde se queda el objeto elegido: arriba a la derecha del caldero,
 // lejos del panel de texto.
 const DESTINO_ANCHA = new THREE.Vector3(1.6, 1.45, 0.75);
-const DESTINO_ESTRECHA = new THREE.Vector3(-1.32, 1.38, 0.3);
+const DESTINO_ESTRECHA = new THREE.Vector3(0.0, 3.95, 0.3);
 
 function Orbe({ opcion, textura, indice, total, seleccion, onSelect, giro, motion, forma, destino: DESTINO, compacto }) {
   const grupo = useRef(null);
@@ -69,9 +69,14 @@ function Orbe({ opcion, textura, indice, total, seleccion, onSelect, giro, motio
     const opacidad = (1 - fuera.current) * (elegido ? 1 : profundidad);
     s.material.opacity = THREE.MathUtils.lerp(s.material.opacity, opacidad, paso);
 
-    // la etiqueta se apaga con su objeto, si no queda flotando sola
+    // La etiqueta se apaga con su objeto. En vertical no caben seis a la vez
+    // sin pisarse, así que solo se lee la del objeto que pasa por delante.
     if (etiqueta.current) {
-      etiqueta.current.style.opacity = String(Math.max(0.22, (profundidad - 0.4) * 1.9));
+      const frontal = Math.sin(angulo);
+      const visible = compacto
+        ? Math.max(0, (frontal - 0.62) / 0.3)
+        : Math.max(0.22, (profundidad - 0.4) * 1.9);
+      etiqueta.current.style.opacity = String(Math.min(1, visible));
     }
   });
 
@@ -103,7 +108,7 @@ function Orbe({ opcion, textura, indice, total, seleccion, onSelect, giro, motio
         <spriteMaterial map={textura} transparent opacity={0} depthWrite={false} toneMapped={false} />
       </sprite>
 
-      {!seleccion && !compacto && (
+      {!seleccion && (
         // sin distanceFactor la etiqueta mantiene su tamaño en pantalla
         <Html center position={[0, -0.52, 0]} style={{ pointerEvents: 'none' }}>
           <span ref={etiqueta} className="orbe-etiqueta" data-encima={encima}>

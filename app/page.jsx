@@ -198,6 +198,7 @@ export default function Home() {
     <main
       className="escenario"
       data-modo={seleccion ? 'detalle' : 'orbita'}
+      data-webgl={webgl ? 'si' : 'no'}
       style={{ '--acento': colores.potion }}
     >
       {/* la sala de pociones, de fondo: muy oscura y desenfocada */}

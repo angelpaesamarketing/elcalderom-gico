@@ -425,57 +425,100 @@ button {
 /* ---------- móvil ---------- */
 
 @media (max-width: 899px) {
-  /* El caldero se queda arriba, con su mitad de pantalla para él solo, y
-     debajo las tarjetas. Nada se pisa y todo se puede tocar. */
-  .escena {
-    bottom: 58%;
+  /* En vertical manda la escena: el caldero asoma por el borde de abajo,
+     los objetos giran a su alrededor y se tocan igual que en el ratón.
+     El hero no lleva texto: solo el logo, centrado arriba. */
+  .cabecera {
+    justify-content: center;
+    padding: 18px 16px;
   }
 
-  .escena-velo {
-    background: radial-gradient(90% 50% at 50% 21%, transparent 40%, rgba(7, 6, 10, 0.75) 100%);
-  }
-
-  .solo-ancho {
+  .cabecera .boton {
     display: none;
   }
 
-  .solo-estrecho {
-    display: inline;
+  .marca img {
+    width: 58px;
+  }
+
+  .escena-velo {
+    background:
+      radial-gradient(95% 55% at 50% 42%, transparent 35%, rgba(7, 6, 10, 0.62) 100%),
+      linear-gradient(180deg, rgba(7, 6, 10, 0.75) 0%, transparent 18%);
   }
 
   .sala {
     filter: brightness(0.34) saturate(0.85) blur(5px);
   }
 
+  .portada h1,
+  .portada p {
+    display: none;
+  }
+
   .portada {
     left: 0;
     right: 0;
     bottom: 0;
-    top: 40%;
+    top: auto;
     max-width: none;
-    padding: 0 18px 20px;
-    justify-content: flex-end;
-    display: flex;
-    flex-direction: column;
-    overflow-y: auto;
+    padding: 0;
   }
 
-  .portada h1 {
-    font-size: clamp(1.7rem, 7.6vw, 2.2rem);
-  }
-
-  .portada p {
-    margin: 8px 0 14px;
-    font-size: 0.86rem;
-    max-width: none;
-  }
-
-  /* las opciones pasan a ser tarjetas con su objeto: se ven y se tocan */
+  /* El menú en texto sigue ahí para teclado y lectores de pantalla, pero
+     fuera de la vista: la órbita ya es el menú. Al enfocarlo aparece. */
   .menu-opciones {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .menu-opciones:focus-within {
+    position: fixed;
+    left: 12px;
+    right: 12px;
+    bottom: 12px;
+    width: auto;
+    height: auto;
+    margin: 0;
+    padding: 12px;
+    overflow: visible;
+    clip-path: none;
+    white-space: normal;
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 9px;
-    max-width: none;
+    border-radius: 16px;
+    background: rgba(7, 6, 10, 0.96);
+    border: 1px solid var(--borde);
+  }
+
+  /* sin WebGL no hay órbita que tocar: las tarjetas vuelven a la vista */
+  .escenario[data-webgl='no'] .portada {
+    top: 42%;
+    padding: 0 18px 20px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    overflow-y: auto;
+  }
+
+  .escenario[data-webgl='no'] .menu-opciones {
+    position: static;
+    width: auto;
+    height: auto;
+    margin: 0;
+    overflow: visible;
+    clip-path: none;
+    white-space: normal;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 9px;
   }
 
   .menu-opciones button {
@@ -492,13 +535,6 @@ button {
     letter-spacing: 0.01em;
     font-size: 0.82rem;
     color: var(--pergamino);
-    transition: opacity 0.4s ease, transform 0.4s cubic-bezier(0.22, 1, 0.36, 1),
-      border-color 0.3s ease, background 0.3s ease;
-  }
-
-  .menu-opciones button:active {
-    border-color: var(--tinte);
-    background: color-mix(in srgb, var(--tinte) 16%, transparent);
   }
 
   .menu-opciones img {
@@ -509,11 +545,9 @@ button {
     flex: none;
   }
 
-  /* al elegir, las tarjetas se van: el mismo "pum" que en la órbita */
-  .escenario[data-modo='detalle'] .menu-opciones button {
-    opacity: 0;
-    transform: translateY(18px) scale(0.94);
-    transition-delay: var(--retardo);
+  .orbe-etiqueta {
+    font-size: 11px;
+    letter-spacing: 0.14em;
   }
 
   .panel {
@@ -527,10 +561,6 @@ button {
     border-top: 1px solid var(--borde);
     background: linear-gradient(180deg, rgba(10, 8, 14, 0.98), rgba(7, 6, 10, 0.99));
     transform: translateY(100%);
-  }
-
-  .marca img {
-    width: 48px;
   }
 
   .pie {
