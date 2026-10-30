@@ -2,7 +2,7 @@
 
 import { useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
-import { useFrame } from '@react-three/fiber';
+import { useFrame, useThree } from '@react-three/fiber';
 import { useTexture, Html } from '@react-three/drei';
 
 // La órbita es elíptica: aplastada en profundidad para que el objeto de
@@ -122,14 +122,19 @@ function Orbe({ opcion, textura, indice, total, seleccion, onSelect, giro, motio
 
 export default function OrbitItems({ opciones, seleccion, onSelect, giro, motion = 1, compacto }) {
   const texturas = useTexture(opciones.map((o) => `/recortables/${o.icon}.webp`));
+  const { gl } = useThree();
   const forma = compacto ? ESTRECHA : ANCHA;
   const destino = compacto ? DESTINO_ESTRECHA : DESTINO_ANCHA;
 
   useMemo(() => {
     texturas.forEach((t) => {
       t.colorSpace = THREE.SRGBColorSpace;
+      t.anisotropy = gl.capabilities.getMaxAnisotropy();
+      t.minFilter = THREE.LinearMipmapLinearFilter;
+      t.generateMipmaps = true;
+      t.needsUpdate = true;
     });
-  }, [texturas]);
+  }, [texturas, gl]);
 
   return (
     <group>

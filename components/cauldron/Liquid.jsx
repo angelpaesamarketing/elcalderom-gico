@@ -22,12 +22,19 @@ const vertexShader = /* glsl */ `
     float dist = length(pos.xy);
     vDist = dist;
 
-    // ondas concéntricas lentas, como un líquido espeso
-    float wave = sin(dist * 18.0 - uTime * 1.6) * 0.012;
-    wave += sin(dist * 31.0 - uTime * 2.3) * 0.005;
+    float angle = atan(pos.y, pos.x);
 
-    // borboteo: el centro late
-    wave += sin(uTime * 1.1) * 0.006 * (1.0 - dist);
+    // ondas concéntricas, como un líquido espeso que no para de hervir
+    float wave = sin(dist * 16.0 - uTime * 1.9) * 0.019;
+    wave += sin(dist * 29.0 - uTime * 2.7) * 0.009;
+
+    // remolino lento: la superficie gira sobre sí misma
+    wave += sin(angle * 3.0 + dist * 7.0 - uTime * 0.9) * 0.012 * dist;
+    wave += sin(angle * 5.0 - dist * 11.0 + uTime * 0.6) * 0.007;
+
+    // borboteo: el centro late y de vez en cuando empuja más fuerte
+    wave += sin(uTime * 1.3) * 0.009 * (1.0 - dist);
+    wave += sin(uTime * 0.37) * sin(uTime * 2.1) * 0.011 * (1.0 - dist * 0.7);
 
     // la onda que deja el ratón al pasar
     float pointerDist = distance(pos.xy, uPointer);
@@ -87,13 +94,20 @@ const fragmentShader = /* glsl */ `
     vec3 color = mix(uColor, uGlow, pow(core, 1.5)) * 1.25;
 
     // las ondas se leen como brillos
-    color += uGlow * clamp(vHeight * 14.0, -0.35, 0.9);
+    color += uGlow * clamp(vHeight * 16.0, -0.4, 1.0);
 
     // partículas en suspensión
     float motes = hash(floor(vUv * 180.0) + floor(uTime * 1.5));
     color += uGlow * step(0.994, motes) * 0.6;
 
-    color += uGlow * bubbles(vUv, uTime * uMotion) * 0.3;
+    // las burbujas acompañan al remolino en vez de quedarse clavadas
+    vec2 centrado = vUv - 0.5;
+    float giro = uTime * 0.07;
+    vec2 uvGirado = vec2(
+      centrado.x * cos(giro) - centrado.y * sin(giro),
+      centrado.x * sin(giro) + centrado.y * cos(giro)
+    ) + 0.5;
+    color += uGlow * bubbles(uvGirado, uTime * uMotion) * 0.34;
 
     // se apaga contra la pared del caldero
     float edge = smoothstep(1.0, 0.72, vDist);

@@ -144,6 +144,7 @@ function Detalle({ id }) {
 
 export default function Home() {
   const [seleccion, setSeleccion] = useState(null);
+  const [menu, setMenu] = useState(false);
   const [calidad, setCalidad] = useState('alta');
   const [movimiento, setMovimiento] = useState(1);
   const [webgl, setWebgl] = useState(true);
@@ -162,10 +163,15 @@ export default function Home() {
     return () => consulta.removeEventListener('change', aplicar);
   }, []);
 
-  // Escape vuelve a la órbita
+  // Escape cierra lo que esté abierto: primero el menú, luego el detalle
   useEffect(() => {
     const alPulsar = (evento) => {
-      if (evento.key === 'Escape') setSeleccion(null);
+      if (evento.key !== 'Escape') return;
+      setMenu((abierto) => {
+        if (abierto) return false;
+        setSeleccion(null);
+        return false;
+      });
     };
     window.addEventListener('keydown', alPulsar);
     return () => window.removeEventListener('keydown', alPulsar);
@@ -190,6 +196,11 @@ export default function Home() {
   const soltarArrastre = useCallback(() => {
     arrastre.current.activo = false;
   }, []);
+
+  const abrir = (id) => {
+    setSeleccion(id);
+    setMenu(false);
+  };
 
   const activa = OPCIONES.find((o) => o.id === seleccion);
   const colores = activa ?? REPOSO;
@@ -229,14 +240,70 @@ export default function Home() {
       <div className="escena-velo" aria-hidden="true" />
 
       <header className="cabecera">
-        <button className="marca" type="button" onClick={() => setSeleccion(null)}>
+        <button className="marca" type="button" onClick={() => { setSeleccion(null); setMenu(false); }}>
           <img src="/marca/logo.png" alt="El Caldero Mágico" />
         </button>
 
-        <a className="boton" href="tel:+34624226793">
-          624 226 793
-        </a>
+        <div className="cabecera-derecha">
+          <a className="boton solo-ancho-flex" href={LOCAL.telefonoEnlace}>
+            {LOCAL.telefono}
+          </a>
+
+          {/* Por si la órbita no se entiende a la primera: el mismo menú,
+              donde todo el mundo lo busca. */}
+          <button
+            className="hamburguesa"
+            type="button"
+            aria-expanded={menu}
+            aria-controls="menu-principal"
+            onClick={() => setMenu((abierto) => !abierto)}
+          >
+            <span className="hamburguesa-lineas" aria-hidden="true">
+              <span />
+              <span />
+              <span />
+            </span>
+            <span className="oculto">{menu ? 'Cerrar menú' : 'Abrir menú'}</span>
+          </button>
+        </div>
       </header>
+
+      <div
+        id="menu-principal"
+        className="cortina"
+        data-abierto={menu}
+        onClick={(evento) => {
+          if (evento.target === evento.currentTarget) setMenu(false);
+        }}
+      >
+        <nav className="cortina-lista">
+          {OPCIONES.map((opcion) => (
+            <button
+              key={opcion.id}
+              type="button"
+              onClick={() => abrir(opcion.id)}
+              style={{ '--tinte': opcion.potion }}
+            >
+              <img src={`/recortables/${opcion.icon}.webp`} alt="" aria-hidden="true" />
+              <span>{opcion.nav}</span>
+            </button>
+          ))}
+        </nav>
+
+        <div className="cortina-pie">
+          <a href={LOCAL.telefonoEnlace}>{LOCAL.telefono}</a>
+          <a href={LOCAL.mapa} target="_blank" rel="noreferrer">
+            {LOCAL.calle}
+          </a>
+          <a
+            href="https://www.instagram.com/elcalderomagico.zaragoza/"
+            target="_blank"
+            rel="noreferrer"
+          >
+            @elcalderomagico.zaragoza
+          </a>
+        </div>
+      </div>
 
       {/* Órbita: el caldero es el menú */}
       <section className="portada" aria-hidden={Boolean(seleccion)}>
@@ -261,7 +328,7 @@ export default function Home() {
             <button
               key={opcion.id}
               type="button"
-              onClick={() => setSeleccion(opcion.id)}
+              onClick={() => abrir(opcion.id)}
               style={{ '--retardo': `${indice * 45}ms`, '--tinte': opcion.potion }}
             >
               <img src={`/recortables/${opcion.icon}.webp`} alt="" aria-hidden="true" />

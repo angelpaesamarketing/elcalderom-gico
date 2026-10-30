@@ -2,6 +2,7 @@
 
 import { useMemo } from 'react';
 import * as THREE from 'three';
+import { useThree } from '@react-three/fiber';
 import { useTexture } from '@react-three/drei';
 
 // Perfil del caldero, medido sobre las referencias de assets/raw/caldero.
@@ -97,6 +98,7 @@ function crearAsa() {
 
 export default function CauldronMesh() {
   const hierro = useTexture('/textures/hierro.webp');
+  const { gl } = useThree();
 
   const cuerpo = useMemo(() => {
     const puntos = PERFIL.map(([x, y]) => new THREE.Vector2(x, y));
@@ -109,6 +111,9 @@ export default function CauldronMesh() {
     hierro.wrapS = hierro.wrapT = THREE.MirroredRepeatWrapping;
     hierro.repeat.set(4, 2);
     hierro.colorSpace = THREE.SRGBColorSpace;
+    // sin esto la panza se ve emborronada donde la superficie se escorza
+    hierro.anisotropy = gl.capabilities.getMaxAnisotropy();
+    hierro.needsUpdate = true;
     return new THREE.MeshStandardMaterial({
       map: hierro,
       bumpMap: hierro,
@@ -118,7 +123,7 @@ export default function CauldronMesh() {
       metalness: 0.3,
       side: THREE.DoubleSide,
     });
-  }, [hierro]);
+  }, [hierro, gl]);
 
   return (
     <group>

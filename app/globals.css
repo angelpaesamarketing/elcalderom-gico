@@ -125,7 +125,7 @@ button {
   top: 0;
   left: 0;
   right: 0;
-  z-index: 20;
+  z-index: 40;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -134,7 +134,7 @@ button {
 
 .marca img {
   display: block;
-  width: 62px;
+  width: 86px;
   height: auto;
   opacity: 0.92;
   transition: opacity 0.3s ease, transform 0.4s ease;
@@ -143,6 +143,153 @@ button {
 .marca:hover img {
   opacity: 1;
   transform: scale(1.05);
+}
+
+.cabecera-derecha {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.oculto {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+
+/* ---------- menú hamburguesa ---------- */
+
+.hamburguesa {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 999px;
+  border: 1px solid var(--borde);
+  background: rgba(7, 6, 10, 0.55);
+  backdrop-filter: blur(6px);
+  transition: border-color 0.3s ease, background 0.3s ease;
+}
+
+.hamburguesa:hover {
+  border-color: var(--acento, var(--ambar));
+}
+
+.hamburguesa-lineas {
+  display: grid;
+  gap: 5px;
+  width: 20px;
+}
+
+.hamburguesa-lineas span {
+  display: block;
+  height: 1.5px;
+  background: var(--pergamino);
+  border-radius: 2px;
+  transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.2s ease;
+}
+
+/* abierto, las tres rayas se convierten en aspa */
+.hamburguesa[aria-expanded='true'] .hamburguesa-lineas span:nth-child(1) {
+  transform: translateY(6.5px) rotate(45deg);
+}
+
+.hamburguesa[aria-expanded='true'] .hamburguesa-lineas span:nth-child(2) {
+  opacity: 0;
+}
+
+.hamburguesa[aria-expanded='true'] .hamburguesa-lineas span:nth-child(3) {
+  transform: translateY(-6.5px) rotate(-45deg);
+}
+
+.cortina {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 28px;
+  padding: 104px clamp(20px, 6vw, 72px) 48px;
+  background: rgba(5, 4, 8, 0.93);
+  backdrop-filter: blur(10px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.35s ease;
+}
+
+.cortina[data-abierto='true'] {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.cortina-lista {
+  display: grid;
+  gap: 10px;
+  width: min(520px, 100%);
+}
+
+.cortina-lista button {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 18px;
+  border: 1px solid var(--borde);
+  border-radius: 16px;
+  background: rgba(243, 231, 211, 0.03);
+  font-family: var(--fuente-titulo), Georgia, serif;
+  font-size: 1.15rem;
+  text-align: left;
+  opacity: 0;
+  transform: translateY(14px);
+  transition: opacity 0.4s ease, transform 0.45s cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 0.3s ease, background 0.3s ease;
+}
+
+.cortina[data-abierto='true'] .cortina-lista button {
+  opacity: 1;
+  transform: none;
+}
+
+/* entran escalonadas, como los objetos de la órbita */
+.cortina-lista button:nth-child(1) { transition-delay: 0.04s; }
+.cortina-lista button:nth-child(2) { transition-delay: 0.08s; }
+.cortina-lista button:nth-child(3) { transition-delay: 0.12s; }
+.cortina-lista button:nth-child(4) { transition-delay: 0.16s; }
+.cortina-lista button:nth-child(5) { transition-delay: 0.2s; }
+.cortina-lista button:nth-child(6) { transition-delay: 0.24s; }
+
+.cortina-lista button:hover {
+  border-color: var(--tinte);
+  background: color-mix(in srgb, var(--tinte) 12%, transparent);
+}
+
+.cortina-lista img {
+  width: 44px;
+  height: 44px;
+  object-fit: contain;
+  flex: none;
+}
+
+.cortina-pie {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 26px;
+  font-size: 0.82rem;
+  color: var(--pergamino-tenue);
+}
+
+.cortina-pie a {
+  border-bottom: 1px solid var(--borde);
+  padding-bottom: 2px;
+}
+
+.cortina-pie a:hover {
+  color: var(--pergamino);
+  border-color: var(--acento, var(--ambar));
 }
 
 /* ---------- botones ---------- */
@@ -185,6 +332,10 @@ button {
 
 .solo-estrecho {
   display: none;
+}
+
+.solo-ancho-flex {
+  display: inline-flex;
 }
 
 .portada p {
@@ -429,16 +580,42 @@ button {
      los objetos giran a su alrededor y se tocan igual que en el ratón.
      El hero no lleva texto: solo el logo, centrado arriba. */
   .cabecera {
-    justify-content: center;
-    padding: 18px 16px;
+    padding: 16px 14px;
   }
 
-  .cabecera .boton {
-    display: none;
+  /* el logo manda arriba y la hamburguesa se queda en la esquina */
+  .marca {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
   }
 
   .marca img {
-    width: 58px;
+    width: 78px;
+  }
+
+  .cabecera-derecha {
+    margin-left: auto;
+  }
+
+  .solo-ancho-flex {
+    display: none;
+  }
+
+  .cortina {
+    justify-content: flex-start;
+    padding: 96px 18px 32px;
+  }
+
+  .cortina-lista button {
+    font-size: 1.02rem;
+    padding: 12px 14px;
+    gap: 13px;
+  }
+
+  .cortina-lista img {
+    width: 38px;
+    height: 38px;
   }
 
   .escena-velo {
@@ -465,84 +642,11 @@ button {
     padding: 0;
   }
 
-  /* El menú en texto sigue ahí para teclado y lectores de pantalla, pero
-     fuera de la vista: la órbita ya es el menú. Al enfocarlo aparece. */
+  /* En vertical el menú es la órbita, y el de la hamburguesa cubre el
+     teclado, los lectores de pantalla y el caso sin WebGL. Dos listas con
+     los mismos nombres solo estorban. */
   .menu-opciones {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    margin: -1px;
-    padding: 0;
-    overflow: hidden;
-    clip-path: inset(50%);
-    white-space: nowrap;
-  }
-
-  .menu-opciones:focus-within {
-    position: fixed;
-    left: 12px;
-    right: 12px;
-    bottom: 12px;
-    width: auto;
-    height: auto;
-    margin: 0;
-    padding: 12px;
-    overflow: visible;
-    clip-path: none;
-    white-space: normal;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 9px;
-    border-radius: 16px;
-    background: rgba(7, 6, 10, 0.96);
-    border: 1px solid var(--borde);
-  }
-
-  /* sin WebGL no hay órbita que tocar: las tarjetas vuelven a la vista */
-  .escenario[data-webgl='no'] .portada {
-    top: 42%;
-    padding: 0 18px 20px;
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-end;
-    overflow-y: auto;
-  }
-
-  .escenario[data-webgl='no'] .menu-opciones {
-    position: static;
-    width: auto;
-    height: auto;
-    margin: 0;
-    overflow: visible;
-    clip-path: none;
-    white-space: normal;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 9px;
-  }
-
-  .menu-opciones button {
-    display: flex;
-    align-items: center;
-    gap: 9px;
-    padding: 9px 11px;
-    min-height: 56px;
-    border: 1px solid var(--borde);
-    border-radius: 14px;
-    background: rgba(243, 231, 211, 0.04);
-    text-align: left;
-    text-transform: none;
-    letter-spacing: 0.01em;
-    font-size: 0.82rem;
-    color: var(--pergamino);
-  }
-
-  .menu-opciones img {
-    display: block;
-    width: 32px;
-    height: 32px;
-    object-fit: contain;
-    flex: none;
+    display: none;
   }
 
   .orbe-etiqueta {
