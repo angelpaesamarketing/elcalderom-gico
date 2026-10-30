@@ -464,3 +464,48 @@ button {
     transition-duration: 0.01ms;
   }
 }
+
+/* ---------- cómo llegar ---------- */
+
+.direccion {
+  margin: 0 0 14px;
+  font-family: var(--fuente-titulo), Georgia, serif;
+  font-size: 1.25rem;
+  line-height: 1.5;
+}
+
+.horario {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.horario li {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--borde);
+  font-size: 0.92rem;
+}
+
+.horario li span:last-child {
+  color: var(--acento, var(--ambar));
+  white-space: nowrap;
+}
+
+.horario li[data-cerrado='true'] {
+  opacity: 0.45;
+}
+
+.horario li[data-cerrado='true'] span:last-child {
+  color: inherit;
+}
+
+.nota a {
+  border-bottom: 1px solid var(--borde);
+}
+
+.nota a:hover {
+  border-color: var(--acento, var(--ambar));
+}

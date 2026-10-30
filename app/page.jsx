@@ -4,6 +4,7 @@ import dynamic from 'next/dynamic';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { OPCIONES, REPOSO } from '@/lib/sections';
 import { BARRA, CARTA, CLASE } from '@/lib/carta';
+import { LOCAL } from '@/lib/local';
 
 // el lienzo solo existe en el navegador: no hay WebGL en el servidor
 const HeroCauldron = dynamic(() => import('@/components/cauldron/HeroCauldron'), {
@@ -93,6 +94,45 @@ function Detalle({ id }) {
           <p className="nota">
             La primera siempre es la seleccionadora: el sombrero decide tu casa antes de
             empezar. Túnica y varita incluidas.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (id === 'llegar') {
+    return (
+      <div className="detalle">
+        <div className="grupo">
+          <h3>La dirección</h3>
+          <p className="direccion">
+            {LOCAL.calle}
+            <br />
+            {LOCAL.ciudad}
+          </p>
+          <p className="nota">
+            Estamos en el casco viejo, en calle estrecha y zona peatonal: lo más cómodo es
+            venir andando o dejar el coche en un parking del centro.
+          </p>
+        </div>
+
+        <div className="grupo">
+          <h3>Horario</h3>
+          <ul className="horario">
+            {LOCAL.horario.map((tramo) => (
+              <li key={tramo.dias} data-cerrado={Boolean(tramo.cerrado)}>
+                <span>{tramo.dias}</span>
+                <span>{tramo.horas}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <div className="grupo">
+          <h3>¿Dudas?</h3>
+          <p className="nota">
+            Llámanos al <a href={LOCAL.telefonoEnlace}>{LOCAL.telefono}</a> y te decimos
+            cómo llegar desde donde estés.
           </p>
         </div>
       </div>
@@ -232,15 +272,23 @@ export default function Home() {
 
             <Detalle id={activa.id} />
 
-            <a className="boton" href={activa.href ?? 'tel:+34624226793'}>
-              {activa.cta}
-            </a>
+            {activa.id === 'llegar' ? (
+              <a className="boton" href={LOCAL.mapa} target="_blank" rel="noreferrer">
+                {activa.cta}
+              </a>
+            ) : (
+              <a className="boton" href={activa.href ?? LOCAL.telefonoEnlace}>
+                {activa.cta}
+              </a>
+            )}
           </div>
         )}
       </section>
 
       <footer className="pie">
-        <span>Zaragoza</span>
+        <a href={LOCAL.mapa} target="_blank" rel="noreferrer">
+          {LOCAL.calle}
+        </a>
         <a href="https://www.instagram.com/elcalderomagico.zaragoza/" target="_blank" rel="noreferrer">
           @elcalderomagico.zaragoza
         </a>
