@@ -6,52 +6,83 @@ import { useFrame, useThree } from '@react-three/fiber';
 import CauldronMesh from './CauldronMesh';
 import Liquid from './Liquid';
 import Steam from './Steam';
+import OrbitItems from './OrbitItems';
 
-export default function Scene({ potion, glow, motion = 1, quality = 'alta' }) {
-  const { camera } = useThree();
-  const group = useRef(null);
-  const potionLight = useRef(null);
-  const rimLight = useRef(null);
+export default function Scene({
+  potion,
+  glow,
+  motion = 1,
+  quality = 'alta',
+  opciones,
+  seleccion,
+  onSelect,
+  giro,
+}) {
+  const { camera, size } = useThree();
+  const compacto = size.width < 900;
+  const grupo = useRef(null);
+  const luzPocion = useRef(null);
+  const luzContra = useRef(null);
 
-  const targetGlow = useMemo(() => new THREE.Color(glow), [glow]);
-  const pointer = useRef({ position: new THREE.Vector2(0, 0), strength: 0, previous: new THREE.Vector2() });
+  const brilloDestino = useMemo(() => new THREE.Color(glow), [glow]);
+  const puntero = useRef({
+    position: new THREE.Vector2(0, 0),
+    strength: 0,
+    previous: new THREE.Vector2(),
+  });
 
   // la cámara mira al interior del caldero, no al centro de la escena
-  camera.lookAt(0, 0.42, 0);
+  camera.lookAt(0, compacto ? 0.85 : 0.42, 0);
 
   useFrame((state, delta) => {
     const { x, y } = state.pointer;
 
     // el puntero, llevado al plano del líquido
-    const target = pointer.current.position;
-    const nextX = x * 1.1;
-    const nextY = -y * 1.1;
-    const travelled = Math.hypot(nextX - pointer.current.previous.x, nextY - pointer.current.previous.y);
-    pointer.current.previous.set(nextX, nextY);
-    target.set(nextX, nextY);
+    const objetivo = puntero.current.position;
+    const siguienteX = x * 1.1;
+    const siguienteY = -y * 1.1;
+    const recorrido = Math.hypot(
+      siguienteX - puntero.current.previous.x,
+      siguienteY - puntero.current.previous.y,
+    );
+    puntero.current.previous.set(siguienteX, siguienteY);
+    objetivo.set(siguienteX, siguienteY);
 
-    // al mover el ratón la poción se agita; parada, se calma
-    pointer.current.strength = THREE.MathUtils.lerp(
-      pointer.current.strength,
-      Math.min(1, travelled * 22),
+    puntero.current.strength = THREE.MathUtils.lerp(
+      puntero.current.strength,
+      Math.min(1, recorrido * 22),
       Math.min(1, delta * 4),
     );
 
-    if (group.current && motion > 0) {
-      // el caldero acompaña al puntero sin llegar a girar
-      group.current.rotation.y = THREE.MathUtils.lerp(group.current.rotation.y, x * 0.22, Math.min(1, delta * 2));
-      group.current.rotation.x = THREE.MathUtils.lerp(group.current.rotation.x, -y * 0.08, Math.min(1, delta * 2));
-      group.current.position.y = Math.sin(state.clock.elapsedTime * 0.5) * 0.02 - 0.35;
+    // La órbita nunca se para: gira sola y el arrastre le suma impulso,
+    // que se va frenando como si tuviera peso.
+    const g = giro.current;
+    g.angulo += (0.16 * motion + g.velocidad) * delta;
+    g.velocidad *= Math.max(0, 1 - delta * 2.4);
+
+    if (grupo.current) {
+      // el caldero gira con la órbita, más despacio, y se inclina hacia el ratón
+      grupo.current.rotation.y = g.angulo * 0.55;
+      if (motion > 0) {
+        grupo.current.rotation.x = THREE.MathUtils.lerp(
+          grupo.current.rotation.x,
+          -y * 0.07,
+          Math.min(1, delta * 2),
+        );
+        grupo.current.position.y = Math.sin(state.clock.elapsedTime * 0.5) * 0.02 - 0.35;
+      }
     }
 
-    if (potionLight.current) {
-      potionLight.current.color.lerp(targetGlow, Math.min(1, delta * 2.2));
-      // el hervor hace parpadear la luz que sale del caldero
-      const flicker = 1 + Math.sin(state.clock.elapsedTime * 3.1) * 0.08 + Math.sin(state.clock.elapsedTime * 7.7) * 0.04;
-      potionLight.current.intensity = 13 * flicker * (motion > 0 ? 1 : 0.9);
+    if (luzPocion.current) {
+      luzPocion.current.color.lerp(brilloDestino, Math.min(1, delta * 2.2));
+      const parpadeo =
+        1 +
+        Math.sin(state.clock.elapsedTime * 3.1) * 0.08 +
+        Math.sin(state.clock.elapsedTime * 7.7) * 0.04;
+      luzPocion.current.intensity = 13 * parpadeo;
     }
-    if (rimLight.current) {
-      rimLight.current.color.lerp(targetGlow, Math.min(1, delta * 2.2));
+    if (luzContra.current) {
+      luzContra.current.color.lerp(brilloDestino, Math.min(1, delta * 2.2));
     }
   });
 
@@ -63,16 +94,27 @@ export default function Scene({ potion, glow, motion = 1, quality = 'alta' }) {
       <directionalLight position={[-4, 5.5, 3]} intensity={3.4} color="#ffe6c4" />
 
       {/* contraluz cálido que separa el caldero del fondo */}
-      <pointLight ref={rimLight} position={[3.2, 1.8, -3]} intensity={14} distance={14} />
+      <pointLight ref={luzContra} position={[3.2, 1.8, -3]} intensity={14} distance={14} />
 
       {/* la poción iluminando el labio y las asas desde dentro */}
-      <pointLight ref={potionLight} position={[0, 0.95, 0]} intensity={13} distance={6.5} decay={2} />
+      <pointLight ref={luzPocion} position={[0, 0.95, 0]} intensity={13} distance={6.5} decay={2} />
 
-      <group ref={group} position={[0, -0.35, 0]}>
+      <Suspense fallback={null}>
+        <OrbitItems
+          opciones={opciones}
+          seleccion={seleccion}
+          onSelect={onSelect}
+          giro={giro}
+          motion={motion}
+          compacto={compacto}
+        />
+      </Suspense>
+
+      <group ref={grupo} position={[0, -0.35, 0]}>
         <Suspense fallback={null}>
           <CauldronMesh />
         </Suspense>
-        <Liquid color={potion} glow={glow} motion={motion} pointer={pointer} />
+        <Liquid color={potion} glow={glow} motion={motion} pointer={puntero} />
         {quality !== 'baja' && (
           <Steam glow={glow} motion={motion} count={quality === 'media' ? 320 : 700} />
         )}

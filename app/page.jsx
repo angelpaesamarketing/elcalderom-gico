@@ -1,16 +1,15 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { useEffect, useRef, useState } from 'react';
-import Props from '@/components/Props';
-import { SECTIONS } from '@/lib/sections';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { OPCIONES, REPOSO } from '@/lib/sections';
+import { BARRA, CARTA, CLASE } from '@/lib/carta';
 
 // el lienzo solo existe en el navegador: no hay WebGL en el servidor
 const HeroCauldron = dynamic(() => import('@/components/cauldron/HeroCauldron'), {
   ssr: false,
 });
 
-// Pantallas flojas no mueven 700 partículas: se reparte en tres niveles.
 function detectarCalidad() {
   const nucleos = navigator.hardwareConcurrency || 4;
   const estrecha = window.matchMedia('(max-width: 899px)').matches;
@@ -28,13 +27,89 @@ function hayWebGL() {
   }
 }
 
+// El contenido propio de cada opción: la carta, la barra y la clase salen
+// del PDF del restaurante.
+function Detalle({ id }) {
+  if (id === 'carta') {
+    return (
+      <div className="detalle">
+        {CARTA.map((grupo) => (
+          <div key={grupo.grupo} className="grupo">
+            <h3>{grupo.grupo}</h3>
+            {grupo.platos.map((plato) => (
+              <div key={plato.nombre} className="plato">
+                <div className="plato-linea">
+                  <span className="plato-nombre">{plato.nombre}</span>
+                  <span className="plato-precio">{plato.precio} €</span>
+                </div>
+                <p>{plato.desc}</p>
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  if (id === 'cerveza') {
+    return (
+      <div className="detalle">
+        <div className="grupo">
+          <h3>Pociones y brebajes</h3>
+          {BARRA.map((bebida) => (
+            <div key={bebida.nombre} className="plato">
+              <div className="plato-linea">
+                <span className="plato-nombre">{bebida.nombre}</span>
+                <span className="plato-precio">{bebida.precio} €</span>
+              </div>
+              <p>{bebida.desc}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (id === 'pociones') {
+    return (
+      <div className="detalle">
+        <div className="precios">
+          <div>
+            <strong>{CLASE.conAlcohol} €</strong>
+            <span>con alcohol, por persona</span>
+          </div>
+          <div>
+            <strong>{CLASE.sinAlcohol} €</strong>
+            <span>sin alcohol, por persona</span>
+          </div>
+        </div>
+        <div className="grupo">
+          <h3>Elige dos pociones</h3>
+          <ul className="lista">
+            {CLASE.pociones.map((pocion) => (
+              <li key={pocion}>{pocion}</li>
+            ))}
+          </ul>
+          <p className="nota">
+            La primera siempre es la seleccionadora: el sombrero decide tu casa antes de
+            empezar. Túnica y varita incluidas.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  return null;
+}
+
 export default function Home() {
-  const [activa, setActiva] = useState(0);
+  const [seleccion, setSeleccion] = useState(null);
   const [calidad, setCalidad] = useState('alta');
   const [movimiento, setMovimiento] = useState(1);
   const [webgl, setWebgl] = useState(true);
-  const principal = useRef(null);
-  const referencias = useRef([]);
+
+  const giro = useRef({ angulo: 0, velocidad: 0, arrastre: 0 });
+  const arrastre = useRef({ activo: false, ultimoX: 0 });
 
   useEffect(() => {
     setCalidad(detectarCalidad());
@@ -47,159 +122,127 @@ export default function Home() {
     return () => consulta.removeEventListener('change', aplicar);
   }, []);
 
-  // El scroll alimenta una variable CSS y son los objetos los que se mueven,
-  // así no hay un re-render de React por cada píxel.
+  // Escape vuelve a la órbita
   useEffect(() => {
-    let pendiente = false;
-    const alDesplazar = () => {
-      if (pendiente) return;
-      pendiente = true;
-      requestAnimationFrame(() => {
-        principal.current?.style.setProperty('--desplazamiento', String(window.scrollY));
-        pendiente = false;
-      });
+    const alPulsar = (evento) => {
+      if (evento.key === 'Escape') setSeleccion(null);
     };
-    alDesplazar();
-    window.addEventListener('scroll', alDesplazar, { passive: true });
-    return () => window.removeEventListener('scroll', alDesplazar);
+    window.addEventListener('keydown', alPulsar);
+    return () => window.removeEventListener('keydown', alPulsar);
   }, []);
 
-  useEffect(() => {
-    const observador = new IntersectionObserver(
-      (entradas) => {
-        entradas.forEach((entrada) => {
-          if (!entrada.isIntersecting) return;
-          setActiva(Number(entrada.target.dataset.indice));
-          entrada.target.querySelector('.aparece')?.setAttribute('data-visible', 'true');
-        });
-      },
-      { threshold: 0.45 },
-    );
-
-    referencias.current.forEach((nodo) => nodo && observador.observe(nodo));
-    return () => observador.disconnect();
+  const empezarArrastre = useCallback((evento) => {
+    arrastre.current.activo = true;
+    arrastre.current.ultimoX = evento.clientX;
+    giro.current.arrastre = 0;
   }, []);
 
-  const seccion = SECTIONS[activa];
+  const moverArrastre = useCallback((evento) => {
+    if (!arrastre.current.activo) return;
+    const delta = evento.clientX - arrastre.current.ultimoX;
+    arrastre.current.ultimoX = evento.clientX;
+    giro.current.angulo += delta * 0.005;
+    giro.current.velocidad = delta * 0.09;
+    giro.current.arrastre += Math.abs(delta);
+  }, []);
+
+  const soltarArrastre = useCallback(() => {
+    arrastre.current.activo = false;
+  }, []);
+
+  const activa = OPCIONES.find((o) => o.id === seleccion);
+  const colores = activa ?? REPOSO;
 
   return (
-    <main ref={principal} style={{ '--acento': seccion.potion }}>
-      {/* fondos de ambiente: se cruzan por opacidad al cambiar de sección */}
-      <div className="fondos" aria-hidden="true">
-        {SECTIONS.filter((item) => item.backdrop).map((item) => (
-          <div
-            key={item.backdrop}
-            className="fondo"
-            data-visible={seccion.backdrop === item.backdrop}
-            style={{ backgroundImage: `url(/ambiente/ambiente-${item.backdrop}.webp)` }}
-          />
-        ))}
-      </div>
-
-      <div className="escena" aria-hidden="true">
+    <main
+      className="escenario"
+      data-modo={seleccion ? 'detalle' : 'orbita'}
+      style={{ '--acento': colores.potion }}
+    >
+      <div
+        className="escena"
+        onPointerDown={empezarArrastre}
+        onPointerMove={moverArrastre}
+        onPointerUp={soltarArrastre}
+        onPointerLeave={soltarArrastre}
+      >
         {webgl ? (
           <HeroCauldron
-            potion={seccion.potion}
-            glow={seccion.glow}
+            potion={colores.potion}
+            glow={colores.glow}
             motion={movimiento}
             quality={calidad}
+            opciones={OPCIONES}
+            seleccion={seleccion}
+            onSelect={setSeleccion}
+            giro={giro}
           />
         ) : (
-          // sin WebGL la web sigue siendo la web: se cae a una imagen
           <img className="escena-respaldo" src="/caldero/caldero-respaldo.webp" alt="" />
         )}
       </div>
       <div className="escena-velo" aria-hidden="true" />
 
       <header className="cabecera">
-        <a className="marca" href="#inicio">
-          <img src="/marca/logo.png" alt="" />
-          <span>El Caldero Mágico</span>
-        </a>
+        <button className="marca" type="button" onClick={() => setSeleccion(null)}>
+          <img src="/marca/logo.png" alt="El Caldero Mágico" />
+        </button>
 
-        <nav className="menu">
-          {SECTIONS.map((item, indice) => (
-            <a key={item.id} href={`#${item.id}`} data-activo={indice === activa}>
-              {item.nav}
-            </a>
-          ))}
-        </nav>
-
-        <a className="boton" href="#contacto">
-          Reserva ya
+        <a className="boton" href="tel:+34624226793">
+          624 226 793
         </a>
       </header>
 
-      <div className="contenido">
-        {SECTIONS.map((item, indice) => (
-          <section
-            key={item.id}
-            id={item.id}
-            className="seccion"
-            data-indice={indice}
-            ref={(nodo) => {
-              referencias.current[indice] = nodo;
-            }}
-          >
-            <Props items={item.props} visible={indice === activa} />
+      {/* Órbita: el caldero es el menú */}
+      <section className="portada" aria-hidden={Boolean(seleccion)}>
+        <h1>
+          El Caldero
+          <br />
+          Mágico
+        </h1>
+        <p>
+          Restaurante mágico en Zaragoza. Gira el caldero y elige por dónde empezar.
+        </p>
 
-            <div className="bloque aparece">
-              <span className="antetitulo">{item.eyebrow}</span>
-              {indice === 0 ? <h1>{item.title}</h1> : <h2>{item.title}</h2>}
-              <p>{item.body}</p>
-              <a className="boton" href="#contacto">
-                {item.cta}
-              </a>
-            </div>
+        {/* mismo menú en texto: para teclado, lectores y navegadores sin WebGL */}
+        <nav className="menu-texto">
+          {OPCIONES.map((opcion) => (
+            <button key={opcion.id} type="button" onClick={() => setSeleccion(opcion.id)}>
+              {opcion.nav}
+            </button>
+          ))}
+        </nav>
+      </section>
 
-            {indice === 0 && (
-              <span className="pista" aria-hidden="true">
-                <span className="pista-linea" />
-                Desliza
-              </span>
-            )}
-          </section>
-        ))}
-      </div>
+      {/* Detalle de la opción elegida */}
+      <section className="panel" aria-hidden={!seleccion}>
+        {activa && (
+          <div className="panel-caja">
+            <button className="volver" type="button" onClick={() => setSeleccion(null)}>
+              ← Volver al caldero
+            </button>
 
-      <footer className="pie" id="contacto">
-        <div className="pie-rejilla">
-          <div>
-            <h3>Ven a vernos</h3>
-            <p>
-              Zaragoza
-              <br />
-              <a href="tel:+34624226793">624 226 793</a>
-            </p>
-          </div>
-          <div>
-            <h3>Síguenos</h3>
-            <p>
-              <a
-                href="https://www.instagram.com/elcalderomagico.zaragoza/"
-                target="_blank"
-                rel="noreferrer"
-              >
-                @elcalderomagico.zaragoza
-              </a>
-            </p>
-          </div>
-          <div>
-            <h3>Reservas</h3>
-            <p>
-              Mesa, clase de pociones o las dos cosas. También tarjetas regalo y
-              cumpleaños.
-            </p>
-            <a className="boton boton-fantasma" href="tel:+34624226793">
-              Llamar
+            <span className="antetitulo">{activa.eyebrow}</span>
+            <h2>{activa.title}</h2>
+            <p className="entrada">{activa.body}</p>
+
+            <Detalle id={activa.id} />
+
+            <a className="boton" href={activa.href ?? 'tel:+34624226793'}>
+              {activa.cta}
             </a>
           </div>
-        </div>
+        )}
+      </section>
 
-        <p className="pie-nota">
-          El Caldero Mágico no está afiliado ni guarda relación con Warner Bros, Wizarding
-          World ni con ninguna otra película o serie de fantasía.
-        </p>
+      <footer className="pie">
+        <span>Zaragoza</span>
+        <a href="https://www.instagram.com/elcalderomagico.zaragoza/" target="_blank" rel="noreferrer">
+          @elcalderomagico.zaragoza
+        </a>
+        <span className="pie-nota">
+          Sin relación con Warner Bros, Wizarding World ni ninguna otra película o serie.
+        </span>
       </footer>
     </main>
   );

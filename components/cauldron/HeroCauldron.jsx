@@ -3,17 +3,17 @@
 import { Canvas } from '@react-three/fiber';
 import Scene from './Scene';
 
-export default function HeroCauldron({ potion, glow, motion, quality }) {
+export default function HeroCauldron(props) {
   const estrecha = typeof window !== 'undefined' && window.innerWidth < 900;
 
   return (
     <Canvas
-      camera={{ position: estrecha ? [0, 2.4, 5.3] : [0, 2.15, 4.15], fov: 40 }}
-      dpr={quality === 'baja' ? 1 : [1, 1.8]}
-      gl={{ antialias: quality !== 'baja', alpha: true }}
+      camera={{ position: estrecha ? [0, 2.8, 7.0] : [0, 2.15, 5.1], fov: 42 }}
+      dpr={props.quality === 'baja' ? 1 : [1, 1.8]}
+      gl={{ antialias: props.quality !== 'baja', alpha: true }}
       style={{ background: 'transparent' }}
     >
-      <Scene potion={potion} glow={glow} motion={motion} quality={quality} />
+      <Scene {...props} />
     </Canvas>
   );
 }
