@@ -146,6 +146,7 @@ export default function Home() {
   const [seleccion, setSeleccion] = useState(null);
   const [menu, setMenu] = useState(false);
   const [pista, setPista] = useState(true);
+  const [estrecha, setEstrecha] = useState(false);
   const [calidad, setCalidad] = useState('alta');
   const [movimiento, setMovimiento] = useState(1);
   const [webgl, setWebgl] = useState(true);
@@ -157,11 +158,19 @@ export default function Home() {
     setCalidad(detectarCalidad());
     setWebgl(hayWebGL());
 
+    const vertical = window.matchMedia('(max-width: 899px)');
+    const medir = () => setEstrecha(vertical.matches);
+    medir();
+    vertical.addEventListener('change', medir);
+
     const consulta = window.matchMedia('(prefers-reduced-motion: reduce)');
     const aplicar = () => setMovimiento(consulta.matches ? 0 : 1);
     aplicar();
     consulta.addEventListener('change', aplicar);
-    return () => consulta.removeEventListener('change', aplicar);
+    return () => {
+      vertical.removeEventListener('change', medir);
+      consulta.removeEventListener('change', aplicar);
+    };
   }, []);
 
   // Escape cierra lo que esté abierto: primero el menú, luego el detalle
@@ -181,21 +190,32 @@ export default function Home() {
   const empezarArrastre = useCallback((evento) => {
     arrastre.current.activo = true;
     arrastre.current.ultimoX = evento.clientX;
+    arrastre.current.ultimoY = evento.clientY;
     giro.current.arrastre = 0;
   }, []);
 
-  const moverArrastre = useCallback((evento) => {
-    if (!arrastre.current.activo) return;
-    const delta = evento.clientX - arrastre.current.ultimoX;
-    arrastre.current.ultimoX = evento.clientX;
-    giro.current.angulo += delta * 0.005;
-    giro.current.velocidad = delta * 0.09;
-    giro.current.caldero += delta * 0.0022;
-    giro.current.arrastre += Math.abs(delta);
+  const moverArrastre = useCallback(
+    (evento) => {
+      if (!arrastre.current.activo) return;
 
-    // en cuanto arrastra, la pista sobra
-    if (giro.current.arrastre > 24) setPista(false);
-  }, []);
+      const dx = evento.clientX - arrastre.current.ultimoX;
+      const dy = evento.clientY - arrastre.current.ultimoY;
+      arrastre.current.ultimoX = evento.clientX;
+      arrastre.current.ultimoY = evento.clientY;
+
+      // la noria se mueve arriba y abajo; el carrusel ancho, a los lados
+      const delta = estrecha ? -dy : dx;
+
+      giro.current.angulo += delta * 0.005;
+      giro.current.velocidad = delta * 0.09;
+      giro.current.caldero += (estrecha ? dx : delta) * 0.0022;
+      giro.current.arrastre += Math.abs(dx) + Math.abs(dy);
+
+      // en cuanto arrastra, la pista sobra
+      if (giro.current.arrastre > 24) setPista(false);
+    },
+    [estrecha],
+  );
 
   const soltarArrastre = useCallback(() => {
     arrastre.current.activo = false;

@@ -745,8 +745,9 @@ button {
     transform: translateY(100%);
   }
 
+  /* en la noria el centro queda hueco: la pista va ahí, sin pisar nada */
   .pista-deslizar {
-    top: 31%;
+    top: 50%;
     font-size: 0.6rem;
     letter-spacing: 0.38em;
   }

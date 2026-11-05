@@ -5,11 +5,20 @@ import * as THREE from 'three';
 import { useFrame, useThree } from '@react-three/fiber';
 import { useTexture, Html } from '@react-three/drei';
 
-// La órbita es elíptica: aplastada en profundidad para que el objeto de
-// delante no se eche encima de la cámara. En vertical no cabe lo mismo, así
-// que se encoge y se sube por encima del caldero.
-const ANCHA = { radio: 2.55, hondura: 0.5, altura: 1.3, tamano: 0.62 };
-const ESTRECHA = { radio: 1.38, hondura: 0.52, altura: 2.5, tamano: 0.48 };
+// En ancho la órbita es horizontal y elíptica: aplastada en profundidad para
+// que el objeto de delante no se eche encima de la cámara.
+const ANCHA = { vertical: false, radio: 2.55, hondura: 0.5, altura: 1.3, tamano: 0.62 };
+
+// En vertical gira como una noria, en el plano de la pantalla: así los seis
+// objetos se ven enteros todo el rato, cada uno con su nombre. La elipse es
+// más alta que ancha para dejar sitio a las etiquetas en los lados.
+const ESTRECHA = {
+  vertical: true,
+  radioX: 0.88,
+  radioY: 1.2,
+  centro: 2.58,
+  tamano: 0.46,
+};
 
 // Sitio donde se queda el objeto elegido: arriba a la derecha del caldero,
 // lejos del panel de texto.
@@ -49,6 +58,7 @@ function Orbe({ opcion, textura, indice, total, seleccion, onSelect, giro, motio
   const fuera = useRef(0);
   const posicion = useMemo(() => new THREE.Vector3(), []);
   const destino = useMemo(() => new THREE.Vector3(), []);
+  const centro = useMemo(() => new THREE.Vector3(), []);
 
   useFrame((state, delta) => {
     const g = grupo.current;
@@ -62,18 +72,31 @@ function Orbe({ opcion, textura, indice, total, seleccion, onSelect, giro, motio
     const angulo = (indice / total) * Math.PI * 2 + giro.current.angulo;
 
     // posición en la órbita, con su propio balanceo
-    posicion.set(
-      Math.cos(angulo) * forma.radio,
-      forma.altura + Math.sin(t * 0.8 + indice * 1.7) * 0.18 * motion,
-      Math.sin(angulo) * forma.radio * forma.hondura,
-    );
+    const vaiven = Math.sin(t * 0.8 + indice * 1.7) * 0.11 * motion;
+
+    if (forma.vertical) {
+      // noria: el círculo vive en el plano de la pantalla
+      posicion.set(
+        Math.cos(angulo) * forma.radioX,
+        forma.centro + Math.sin(angulo) * forma.radioY + vaiven * 0.5,
+        0,
+      );
+      centro.set(0, forma.centro, 0);
+    } else {
+      posicion.set(
+        Math.cos(angulo) * forma.radio,
+        forma.altura + vaiven * 1.6,
+        Math.sin(angulo) * forma.radio * forma.hondura,
+      );
+      centro.set(0, forma.altura, 0);
+    }
 
     if (elegido) {
       destino.copy(DESTINO);
       destino.y += Math.sin(t * 0.9) * 0.08 * motion;
     } else if (descartado) {
-      // ¡pum!: sale despedido hacia fuera por donde estaba
-      destino.copy(posicion).multiplyScalar(4.5);
+      // ¡pum!: sale despedido hacia fuera, alejándose del centro del círculo
+      destino.subVectors(posicion, centro).multiplyScalar(5).add(centro);
     } else {
       destino.copy(posicion);
     }
@@ -87,8 +110,10 @@ function Orbe({ opcion, textura, indice, total, seleccion, onSelect, giro, motio
     const escala = base * (1 - fuera.current);
     s.scale.setScalar(Math.max(0.001, escala));
 
-    // los de atrás se apagan un poco para que la órbita tenga profundidad
-    const profundidad = THREE.MathUtils.mapLinear(Math.sin(angulo), -1, 1, 0.45, 1);
+    // en la noria no hay delante ni detrás: todos se ven por igual
+    const profundidad = forma.vertical
+      ? 1
+      : THREE.MathUtils.mapLinear(Math.sin(angulo), -1, 1, 0.45, 1);
     const opacidad = (1 - fuera.current) * (elegido ? 1 : profundidad);
     s.material.opacity = THREE.MathUtils.lerp(s.material.opacity, opacidad, paso);
 
@@ -99,23 +124,14 @@ function Orbe({ opcion, textura, indice, total, seleccion, onSelect, giro, motio
       halo.current.material.opacity = (1 - fuera.current) * (0.62 + Math.sin(t * 1.6) * 0.18);
     }
 
-    // La etiqueta se apaga con su objeto. En vertical no caben seis a la vez
-    // sin pisarse, así que solo se lee la del objeto que pasa por delante.
+    // En la noria se lee siempre el nombre de los seis: es justo lo que
+    // tiene que resolver. En horizontal se apagan los que quedan detrás.
     if (etiqueta.current) {
-      const frontal = Math.sin(angulo);
-      // la destacada se lee casi siempre: es la que no queremos que se pierdan
-      let visible = opcion.destacado
-        ? Math.max(0.7, profundidad)
-        : compacto
-          ? Math.max(0, (frontal - 0.62) / 0.3)
+      const visible = forma.vertical
+        ? 1
+        : opcion.destacado
+          ? Math.max(0.7, profundidad)
           : Math.max(0.22, (profundidad - 0.4) * 1.9);
-
-      // En vertical el texto se sale por el borde cuando el objeto pasa por
-      // el lateral, así que ahí se apaga.
-      if (compacto) {
-        const lateral = Math.abs(Math.cos(angulo));
-        visible *= 1 - THREE.MathUtils.smoothstep(lateral, 0.55, 0.85);
-      }
       etiqueta.current.style.opacity = String(Math.min(1, Math.max(0, visible)));
     }
   });
@@ -123,7 +139,15 @@ function Orbe({ opcion, textura, indice, total, seleccion, onSelect, giro, motio
   return (
     <group
       ref={grupo}
-      position={[Math.cos((indice / total) * Math.PI * 2) * forma.radio, forma.altura, 0]}
+      position={
+        forma.vertical
+          ? [
+              Math.cos((indice / total) * Math.PI * 2) * forma.radioX,
+              forma.centro + Math.sin((indice / total) * Math.PI * 2) * forma.radioY,
+              0,
+            ]
+          : [Math.cos((indice / total) * Math.PI * 2) * forma.radio, forma.altura, 0]
+      }
     >
       {texturaHalo && (
         <sprite ref={halo} scale={0.001}>
@@ -163,14 +187,18 @@ function Orbe({ opcion, textura, indice, total, seleccion, onSelect, giro, motio
 
       {!seleccion && (
         // sin distanceFactor la etiqueta mantiene su tamaño en pantalla
-        <Html center position={[0, -0.52, 0]} style={{ pointerEvents: 'none' }}>
+        <Html
+          center
+          position={[0, forma.vertical ? -0.42 : -0.52, 0]}
+          style={{ pointerEvents: 'none' }}
+        >
           <span
             ref={etiqueta}
             className="orbe-etiqueta"
             data-encima={encima}
             data-destacado={Boolean(opcion.destacado)}
           >
-            {opcion.destacado ? 'Reservar' : opcion.nav}
+            {opcion.destacado ? 'Reservar' : compacto && opcion.corto ? opcion.corto : opcion.nav}
           </span>
         </Html>
       )}
