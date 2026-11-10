@@ -2,6 +2,8 @@
 
 import dynamic from 'next/dynamic';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import Letras from '@/components/Letras';
+import { apagar, encender } from '@/lib/sonido';
 import { OPCIONES, REPOSO } from '@/lib/sections';
 import { BARRA, CARTA, CLASE } from '@/lib/carta';
 import { LOCAL } from '@/lib/local';
@@ -147,6 +149,9 @@ export default function Home() {
   const [menu, setMenu] = useState(false);
   const [pista, setPista] = useState(true);
   const [estrecha, setEstrecha] = useState(false);
+  const [entrando, setEntrando] = useState(true);
+  const [sonando, setSonando] = useState(false);
+  const [escenaLista, setEscenaLista] = useState(false);
   const [calidad, setCalidad] = useState('alta');
   const [movimiento, setMovimiento] = useState(1);
   const [webgl, setWebgl] = useState(true);
@@ -172,6 +177,26 @@ export default function Home() {
       consulta.removeEventListener('change', aplicar);
     };
   }, []);
+
+  // La entrada: la cámara cae sobre el caldero mientras el telón se abre.
+  // El telón espera al primer fotograma de la escena, porque si no se abre
+  // sobre un lienzo vacío y la caída se la pierde nadie.
+  useEffect(() => {
+    const reducido = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reducido) {
+      setEntrando(false);
+      return undefined;
+    }
+    // red de seguridad por si la escena nunca llega a cargar
+    const tope = setTimeout(() => setEntrando(false), 6000);
+    return () => clearTimeout(tope);
+  }, []);
+
+  useEffect(() => {
+    if (!escenaLista) return undefined;
+    const reloj = setTimeout(() => setEntrando(false), 1500);
+    return () => clearTimeout(reloj);
+  }, [escenaLista]);
 
   // Escape cierra lo que esté abierto: primero el menú, luego el detalle
   useEffect(() => {
@@ -221,6 +246,16 @@ export default function Home() {
     arrastre.current.activo = false;
   }, []);
 
+  const alternarSonido = async () => {
+    if (sonando) {
+      await apagar();
+      setSonando(false);
+      return;
+    }
+    const listo = await encender();
+    setSonando(listo);
+  };
+
   const abrir = (id) => {
     setSeleccion(id);
     setMenu(false);
@@ -234,8 +269,14 @@ export default function Home() {
       className="escenario"
       data-modo={seleccion ? 'detalle' : 'orbita'}
       data-webgl={webgl ? 'si' : 'no'}
+      data-entrando={entrando}
       style={{ '--acento': colores.potion }}
     >
+      {/* telón de entrada: negro con el logo, que se abre al caer la cámara */}
+      <div className="telon" data-fin={!entrando} aria-hidden="true">
+        <img src="/marca/logo.png" alt="" />
+      </div>
+
       {/* la sala de pociones, de fondo: muy oscura y desenfocada */}
       <div className="sala" aria-hidden="true" />
 
@@ -252,6 +293,8 @@ export default function Home() {
             glow={colores.glow}
             motion={movimiento}
             quality={calidad}
+            volar={escenaLista}
+            onListo={() => setEscenaLista(true)}
             opciones={OPCIONES}
             seleccion={seleccion}
             onSelect={setSeleccion}
@@ -269,6 +312,21 @@ export default function Home() {
         </button>
 
         <div className="cabecera-derecha">
+          <button
+            className="sonido"
+            type="button"
+            aria-pressed={sonando}
+            onClick={alternarSonido}
+          >
+            <span className="sonido-barras" aria-hidden="true">
+              <span />
+              <span />
+              <span />
+              <span />
+            </span>
+            <span className="oculto">{sonando ? 'Silenciar' : 'Activar sonido'}</span>
+          </button>
+
           {/* el botón que más importa, siempre a la vista */}
           <a className="boton boton-lleno solo-ancho-flex" href={LOCAL.reservar}>
             Reservar
@@ -335,9 +393,9 @@ export default function Home() {
       {/* Órbita: el caldero es el menú */}
       <section className="portada" aria-hidden={Boolean(seleccion)}>
         <h1>
-          El Caldero
+          <Letras texto="El Caldero" retardo={2.5} />
           <br />
-          Mágico
+          <Letras texto="Mágico" retardo={2.78} />
         </h1>
         <p>
           Restaurante mágico en Zaragoza.{' '}
@@ -374,7 +432,9 @@ export default function Home() {
             </button>
 
             <span className="antetitulo">{activa.eyebrow}</span>
-            <h2>{activa.title}</h2>
+            <h2 key={activa.id}>
+              <Letras texto={activa.title} retardo={0.16} paso={0.022} />
+            </h2>
             <p className="entrada">{activa.body}</p>
 
             <Detalle id={activa.id} />

@@ -91,7 +91,7 @@ const fragmentShader = /* glsl */ `
   void main() {
     // la poción emite luz desde el fondo del caldero
     float core = 1.0 - smoothstep(0.0, 0.95, vDist);
-    vec3 color = mix(uColor, uGlow, pow(core, 1.5)) * 1.25;
+    vec3 color = mix(uColor, uGlow, pow(core, 1.6)) * 0.92;
 
     // las ondas se leen como brillos
     color += uGlow * clamp(vHeight * 16.0, -0.4, 1.0);
@@ -111,7 +111,7 @@ const fragmentShader = /* glsl */ `
 
     // se apaga contra la pared del caldero
     float edge = smoothstep(1.0, 0.72, vDist);
-    color *= mix(0.62, 1.15, edge);
+    color *= mix(0.5, 1.0, edge);
 
     gl_FragColor = vec4(color, 1.0);
     #include <colorspace_fragment>

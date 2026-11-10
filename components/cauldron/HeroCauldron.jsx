@@ -2,8 +2,9 @@
 
 import { Canvas } from '@react-three/fiber';
 import Scene from './Scene';
+import Efectos from './Efectos';
 
-export default function HeroCauldron(props) {
+export default function HeroCauldron({ onListo, ...props }) {
   const estrecha = typeof window !== 'undefined' && window.innerWidth < 900;
 
   return (
@@ -13,8 +14,10 @@ export default function HeroCauldron(props) {
       dpr={props.quality === 'baja' ? [1, 1.75] : [1, 2.5]}
       gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }}
       style={{ background: 'transparent' }}
+      onCreated={() => onListo?.()}
     >
       <Scene {...props} />
+      <Efectos calidad={props.quality} />
     </Canvas>
   );
 }
