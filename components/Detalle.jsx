@@ -1,8 +1,9 @@
 'use client';
 
+import Pociones from '@/components/Pociones';
 import Reserva from '@/components/Reserva';
 import { BARRA, CARTA } from '@/lib/carta';
-import { CHOCOLATEADAS, CLASE, EVENTOS, TRIVIAL } from '@/lib/experiencias';
+import { CHOCOLATEADAS, CLASE, EVENTOS, MAX_POCIONES, TRIVIAL } from '@/lib/experiencias';
 import { LOCAL } from '@/lib/local';
 
 function Datos({ pares }) {
@@ -32,11 +33,18 @@ function Platos({ lista }) {
 
 // El contenido propio de cada opción. `alReservar` abre el formulario con el
 // tipo ya elegido; `alTest` arranca "¿Qué poción eres?".
-export default function Detalle({ id, reserva, alReservar, alTest }) {
+export default function Detalle({ id, reserva, alReservar, alTest, elegidas, alElegir, alMirar }) {
   if (id === 'reservas') {
     return (
       <div className="detalle">
-        <Reserva key={`${reserva.tipo}-${reserva.nota}`} tipoInicial={reserva.tipo} nota={reserva.nota} />
+        <Reserva
+          key={`${reserva.tipo}-${reserva.nota}`}
+          tipoInicial={reserva.tipo}
+          nota={reserva.nota}
+          elegidas={elegidas}
+          alElegir={alElegir}
+          alMirar={alMirar}
+        />
       </div>
     );
   }
@@ -86,14 +94,21 @@ export default function Detalle({ id, reserva, alReservar, alTest }) {
         <Datos pares={CLASE.datos} />
 
         <div className="grupo">
-          <h3>Elige dos pociones</h3>
-          <Platos lista={CLASE.pociones} />
+          <h3>Elige tus dos pociones</h3>
+          <Pociones elegidas={elegidas} alCambiar={alElegir} alMirar={alMirar} />
           <p className="nota">
-            La primera siempre es la seleccionadora: el sombrero decide antes de empezar.
-            El local es accesible en silla de ruedas; avísanos al reservar.
+            La primera copa siempre es el Seleccionador: el sombrero decide tu casa antes de
+            empezar. El local es accesible en silla de ruedas; avísanos al reservar.
           </p>
+          <button
+            className="boton boton-lleno"
+            type="button"
+            onClick={() => alReservar('clase')}
+          >
+            {elegidas.length === MAX_POCIONES ? 'Reservar la clase con estas dos' : 'Reservar la clase'}
+          </button>
           <button className="boton boton-fantasma" type="button" onClick={alTest}>
-            ¿No sabes cuál? Haz el test
+            ¿No sabes cuáles? Que decida el sombrero
           </button>
         </div>
 

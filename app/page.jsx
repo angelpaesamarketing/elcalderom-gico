@@ -9,7 +9,8 @@ import { apagar, encender } from '@/lib/sonido';
 import { OPCIONES, REPOSO } from '@/lib/sections';
 import { LOCAL } from '@/lib/local';
 import { medir } from '@/lib/medir';
-import { POCIONES } from '@/lib/test';
+import { POCION } from '@/lib/experiencias';
+import { CASAS } from '@/lib/test';
 
 // el lienzo solo existe en el navegador: no hay WebGL en el servidor
 const HeroCauldron = dynamic(() => import('@/components/cauldron/HeroCauldron'), {
@@ -45,8 +46,11 @@ export default function Home() {
   const [sonando, setSonando] = useState(false);
   // con qué llega relleno el formulario de reserva
   const [reserva, setReserva] = useState({ tipo: 'mesa', nota: '' });
-  // el test tiñe el caldero y lanza una onda con cada respuesta
+  // Color prestado al caldero: lo ponen el test (la casa) y el selector de
+  // pociones (el cóctel que estás mirando). Cada cambio lanza una onda.
   const [tinte, setTinte] = useState(null);
+  // las dos pociones elegidas para la clase; viajan hasta la reserva
+  const [elegidas, setElegidas] = useState([]);
   const [pulso, setPulso] = useState(0);
   // poción de quien te mandó el enlace, si vienes de uno compartido
   const [reto, setReto] = useState(null);
@@ -98,11 +102,11 @@ export default function Home() {
     return () => clearTimeout(reloj);
   }, [escenaLista]);
 
-  // Un enlace compartido (?pocion=amor) abre el test nada más entrar, con
+  // Un enlace compartido (?casa=ravenclaw) abre el test nada más entrar, con
   // el resultado de quien lo mandó como reto.
   useEffect(() => {
-    const id = new URLSearchParams(window.location.search).get('pocion');
-    if (id && POCIONES[id]) setReto(id);
+    const id = new URLSearchParams(window.location.search).get('casa');
+    if (id && CASAS[id]) setReto(id);
   }, []);
 
   useEffect(() => {
@@ -202,10 +206,14 @@ export default function Home() {
     medir('test_abierto', { origen });
   };
 
-  const teñir = (id) => {
-    setTinte(id);
-    if (id) setPulso((n) => n + 1);
+  const teñir = (color) => {
+    setTinte(color);
+    if (color) setPulso((n) => n + 1);
   };
+
+  // el selector de pociones manda el id de la que se está mirando
+  const mirarPocion = (id) =>
+    teñir(id ? { potion: POCION[id].color, glow: POCION[id].brillo } : null);
 
   const volver = () => {
     setSeleccion(null);
@@ -214,11 +222,7 @@ export default function Home() {
 
   const enTest = seleccion === 'test';
   const activa = OPCIONES.find((o) => o.id === seleccion);
-  const colores = enTest
-    ? tinte
-      ? { potion: POCIONES[tinte].color, glow: POCIONES[tinte].brillo }
-      : NIEBLA
-    : (activa ?? REPOSO);
+  const colores = tinte ?? (enTest ? NIEBLA : (activa ?? REPOSO));
 
   return (
     <main
@@ -336,7 +340,7 @@ export default function Home() {
           ))}
           <button type="button" className="cortina-test" onClick={() => empezarTest('menu')}>
             <span className="chispa" aria-hidden="true">✦</span>
-            <span>¿Qué poción eres?</span>
+            <span>¿Cuál es tu casa?</span>
             <span className="cortina-pista">Haz el test</span>
           </button>
         </nav>
@@ -368,7 +372,7 @@ export default function Home() {
 
         <button className="boton boton-test" type="button" onClick={() => empezarTest('portada')}>
           <span className="chispa" aria-hidden="true">✦</span>
-          ¿Qué poción eres?
+          ¿Cuál es tu casa?
         </button>
 
         {/* El mismo menú sirve en las dos pantallas y hace de alternativa
@@ -399,7 +403,10 @@ export default function Home() {
             </button>
             <Test
               alTeñir={teñir}
-              alReservar={(nombre) => reservar('clase', `Quiero preparar la ${nombre}.`, 'test')}
+              alReservar={(pociones) => {
+                setElegidas(pociones);
+                reservar('clase', '', 'test');
+              }}
               reto={reto}
             />
           </div>
@@ -422,6 +429,9 @@ export default function Home() {
               reserva={reserva}
               alReservar={(tipo) => reservar(tipo, '', activa.id)}
               alTest={() => empezarTest('clase')}
+              elegidas={elegidas}
+              alElegir={setElegidas}
+              alMirar={mirarPocion}
             />
 
             {activa.id === 'llegar' && (
@@ -429,7 +439,7 @@ export default function Home() {
                 {activa.cta}
               </a>
             )}
-            {activa.reserva && (
+            {activa.reserva && activa.id !== 'pociones' && (
               <button
                 className="boton boton-lleno"
                 type="button"
@@ -457,7 +467,7 @@ export default function Home() {
       <div className="fijo">
         <button className="fijo-test" type="button" onClick={() => empezarTest('movil')}>
           <span className="chispa" aria-hidden="true">✦</span>
-          ¿Qué poción eres?
+          ¿Cuál es tu casa?
         </button>
         <button className="reservar-fijo" type="button" onClick={() => reservar('mesa', '', 'barra')}>
           Reservar mesa

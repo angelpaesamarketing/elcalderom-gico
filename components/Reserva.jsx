@@ -1,7 +1,8 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { TIPOS_RESERVA } from '@/lib/experiencias';
+import Pociones from '@/components/Pociones';
+import { MAX_POCIONES, POCION, TIPOS_RESERVA } from '@/lib/experiencias';
 import { LOCAL } from '@/lib/local';
 import { medir } from '@/lib/medir';
 
@@ -185,16 +186,43 @@ function Solicitud({ nota }) {
   );
 }
 
-// Reservar o comprar. Lo que el local ya gestiona con CoverManager se hace
-// en su propio módulo, incrustado aquí: disponibilidad real y pago real.
-// Solo los eventos y grupos, que se cierran hablando, van por solicitud.
-export default function Reserva({ tipoInicial = 'mesa', nota = '' }) {
+// Reservar o comprar, en dos pasos:
+//  1. La ficha: en qué consiste lo que vas a reservar. En la clase, además,
+//     se eligen aquí las dos pociones; en una mesa no se pregunta nada.
+//  2. El módulo de CoverManager del local, con disponibilidad y pago reales.
+// Los eventos y grupos, que se cierran hablando, van por solicitud.
+export default function Reserva({ tipoInicial = 'mesa', nota = '', elegidas, alElegir, alMirar }) {
   const [tipo, setTipo] = useState(tipoInicial);
+  const [paso, setPaso] = useState('ficha');
+  const [copiado, setCopiado] = useState(false);
+
   const elegido = TIPOS_RESERVA.find((t) => t.id === tipo) ?? TIPOS_RESERVA[0];
+  const esClase = tipo === 'clase';
+  const faltan = esClase ? MAX_POCIONES - elegidas.length : 0;
 
   const elegir = (id) => {
     setTipo(id);
+    setPaso('ficha');
+    alMirar?.(null);
     medir('reserva_tipo', { tipo: id });
+  };
+
+  const continuar = () => {
+    setPaso('modulo');
+    medir('reserva_modulo', { tipo, pociones: esClase ? elegidas.join('+') : undefined });
+  };
+
+  // Lo que el cliente tiene que hacer llegar al local con su reserva. El
+  // módulo de CoverManager no se puede rellenar desde fuera, así que se le
+  // da el texto listo para pegar en comentarios, o para mandarlo aparte.
+  const frase = `Pociones para la clase: ${elegidas.map((id) => POCION[id].nombre).join(' y ')}.`;
+  const copiar = async () => {
+    try {
+      await navigator.clipboard.writeText(frase);
+      setCopiado(true);
+    } catch {
+      setCopiado(false);
+    }
   };
 
   return (
@@ -216,17 +244,82 @@ export default function Reserva({ tipoInicial = 'mesa', nota = '' }) {
         ))}
       </fieldset>
 
-      {elegido.via === 'solicitud' ? (
-        <Solicitud nota={nota} />
-      ) : (
-        <>
-          {(elegido.aviso || nota) && (
-            <p className="reserva-aviso">
-              {elegido.aviso}
-              {elegido.aviso && nota ? ' ' : ''}
-              {nota}
-            </p>
+      {elegido.via === 'solicitud' && <Solicitud nota={nota} />}
+
+      {elegido.via !== 'solicitud' && paso === 'ficha' && (
+        <div className="ficha">
+          <span className="ficha-paso">Paso 1 de 2 · Qué vas a reservar</span>
+          <h3>{elegido.ficha.titulo}</h3>
+
+          {elegido.ficha.datos && (
+            <dl className="datos">
+              {elegido.ficha.datos.map(([clave, valor]) => (
+                <div key={clave}>
+                  <dt>{clave}</dt>
+                  <dd>{valor}</dd>
+                </div>
+              ))}
+            </dl>
           )}
+
+          <ul className="ficha-puntos">
+            {elegido.ficha.puntos.map((punto) => (
+              <li key={punto}>{punto}</li>
+            ))}
+          </ul>
+
+          {esClase && (
+            <div className="ficha-pociones">
+              <h3>¿Qué dos pociones vais a preparar?</h3>
+              <p className="nota">
+                Las elegís ahora para que el local lo tenga todo listo cuando lleguéis.
+              </p>
+              <Pociones elegidas={elegidas} alCambiar={alElegir} alMirar={alMirar} />
+            </div>
+          )}
+
+          <button className="boton boton-lleno" type="button" disabled={faltan > 0} onClick={continuar}>
+            {faltan > 0
+              ? `Elige ${faltan === 1 ? 'una poción más' : 'dos pociones'} para seguir`
+              : elegido.ficha.continuar}
+          </button>
+        </div>
+      )}
+
+      {elegido.via !== 'solicitud' && paso === 'modulo' && (
+        <>
+          <button className="volver" type="button" onClick={() => setPaso('ficha')}>
+            ← {esClase ? 'Cambiar pociones' : 'Ver qué incluye'}
+          </button>
+          <span className="ficha-paso">Paso 2 de 2 · Día y hora</span>
+
+          {esClase && (
+            <div className="reserva-aviso recado">
+              <strong>{frase}</strong>
+              <span>
+                Pega esta frase en el campo de comentarios de la reserva, o mándala por
+                WhatsApp cuando termines.
+              </span>
+              <div className="recado-acciones">
+                <button className="boton" type="button" onClick={copiar}>
+                  {copiado ? 'Copiada' : 'Copiar frase'}
+                </button>
+                <a
+                  className="boton"
+                  href={`https://wa.me/${LOCAL.whatsapp}?text=${encodeURIComponent(
+                    `Hola, acabo de reservar una clase de pociones. ${frase}`,
+                  )}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  onClick={() => medir('pociones_enviadas', { canal: 'whatsapp' })}
+                >
+                  Enviar por WhatsApp
+                </a>
+              </div>
+            </div>
+          )}
+
+          {elegido.aviso && <p className="reserva-aviso">{elegido.aviso}</p>}
 
           {/* key: al cambiar de módulo se monta un iframe nuevo, no se navega el viejo */}
           <div className="modulo" key={elegido.via}>
