@@ -122,11 +122,11 @@ export default function Detalle({ id, reserva, alReservar, alTest }) {
           <h3>Tarjeta regalo</h3>
           <p className="direccion">Regala una tarde de magia</p>
           <p className="nota">
-            Una clase de pociones, unas chocolateadas o una cena. Tú eliges el regalo y
-            nosotros te preparamos la tarjeta.
+            Una clase de pociones, unas chocolateadas o una cena. La eliges y la pagas
+            aquí mismo.
           </p>
           <button className="boton boton-lleno" type="button" onClick={() => alReservar('regalo')}>
-            Pedir una tarjeta regalo
+            Comprar tarjeta regalo
           </button>
         </div>
 

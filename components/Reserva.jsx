@@ -24,19 +24,19 @@ function franjas([desde, hasta]) {
   return lista;
 }
 
-// Solicitud de reserva. No consulta disponibilidad: compone el mensaje y lo
-// manda al local por WhatsApp o por correo, que es quien confirma. Por eso
-// en ningún sitio dice "reserva confirmada".
-export default function Reserva({ tipoInicial = 'mesa', nota = '' }) {
-  const [tipo, setTipo] = useState(tipoInicial);
+// Solicitud para eventos y grupos, que el local gestiona hablando. No
+// consulta disponibilidad: compone el mensaje y lo manda por WhatsApp o por
+// correo. Por eso en ningún sitio dice "reserva confirmada".
+function Solicitud({ nota }) {
+  const tipo = 'evento';
   const [fecha, setFecha] = useState('');
   const [hora, setHora] = useState('');
-  const [personas, setPersonas] = useState(2);
+  const [personas, setPersonas] = useState(12);
   const [nombre, setNombre] = useState('');
   const [comentario, setComentario] = useState(nota);
 
   const elegido = TIPOS_RESERVA.find((t) => t.id === tipo);
-  const conFecha = !elegido.sinFecha;
+  const conFecha = true;
 
   const dia = fecha ? new Date(`${fecha}T12:00:00`) : null;
   const apertura = dia ? LOCAL.apertura[dia.getDay()] : null;
@@ -52,9 +52,7 @@ export default function Reserva({ tipoInicial = 'mesa', nota = '' }) {
 
   const mensaje = [
     `Hola, soy ${nombre.trim() || '…'}.`,
-    tipo === 'regalo'
-      ? 'Quiero una tarjeta regalo de El Caldero Mágico.'
-      : `Quiero reservar: ${elegido.nombre.toLowerCase()}.`,
+    'Quiero organizar un evento o venir en grupo.',
     conFecha && fecha && !cerrado ? `Día: ${fechaLarga}${hora ? ` a las ${hora}` : ''}.` : null,
     conFecha ? `Personas: ${personas}.` : null,
     comentario.trim() ? `Nota: ${comentario.trim()}` : null,
@@ -72,23 +70,10 @@ export default function Reserva({ tipoInicial = 'mesa', nota = '' }) {
 
   return (
     <form className="reserva" onSubmit={(evento) => evento.preventDefault()}>
-      <fieldset className="reserva-tipos">
-        <legend>¿Qué quieres reservar?</legend>
-        {TIPOS_RESERVA.map((t) => (
-          <label key={t.id} data-activo={t.id === tipo}>
-            <input
-              type="radio"
-              name="tipo"
-              value={t.id}
-              checked={t.id === tipo}
-              onChange={() => setTipo(t.id)}
-            />
-            <span>{t.nombre}</span>
-            <small>{t.pista}</small>
-          </label>
-        ))}
-      </fieldset>
-
+      <p className="nota">
+        Cumpleaños, empresas, despedidas o más de diez personas: cuéntanos y te lo
+        preparamos a medida.
+      </p>
       {conFecha && (
         <>
           <div className="reserva-fila">
@@ -137,11 +122,6 @@ export default function Reserva({ tipoInicial = 'mesa', nota = '' }) {
             </div>
           </div>
 
-          {personas > 10 && (
-            <p className="reserva-aviso">
-              Para más de diez lo preparamos a medida: mándanos la solicitud y te llamamos.
-            </p>
-          )}
         </>
       )}
 
@@ -162,7 +142,7 @@ export default function Reserva({ tipoInicial = 'mesa', nota = '' }) {
           rows={2}
           value={comentario}
           onChange={(evento) => setComentario(evento.target.value)}
-          placeholder="Alergias, celíacos, silla de ruedas, cumpleaños…"
+          placeholder="Qué celebráis, alergias, si queréis clase de pociones…"
         />
       </label>
 
@@ -202,5 +182,72 @@ export default function Reserva({ tipoInicial = 'mesa', nota = '' }) {
         .
       </p>
     </form>
+  );
+}
+
+// Reservar o comprar. Lo que el local ya gestiona con CoverManager se hace
+// en su propio módulo, incrustado aquí: disponibilidad real y pago real.
+// Solo los eventos y grupos, que se cierran hablando, van por solicitud.
+export default function Reserva({ tipoInicial = 'mesa', nota = '' }) {
+  const [tipo, setTipo] = useState(tipoInicial);
+  const elegido = TIPOS_RESERVA.find((t) => t.id === tipo) ?? TIPOS_RESERVA[0];
+
+  const elegir = (id) => {
+    setTipo(id);
+    medir('reserva_tipo', { tipo: id });
+  };
+
+  return (
+    <div className="reserva">
+      <fieldset className="reserva-tipos">
+        <legend>¿Qué quieres?</legend>
+        {TIPOS_RESERVA.map((t) => (
+          <label key={t.id} data-activo={t.id === tipo}>
+            <input
+              type="radio"
+              name="tipo"
+              value={t.id}
+              checked={t.id === tipo}
+              onChange={() => elegir(t.id)}
+            />
+            <span>{t.nombre}</span>
+            <small>{t.pista}</small>
+          </label>
+        ))}
+      </fieldset>
+
+      {elegido.via === 'solicitud' ? (
+        <Solicitud nota={nota} />
+      ) : (
+        <>
+          {(elegido.aviso || nota) && (
+            <p className="reserva-aviso">
+              {elegido.aviso}
+              {elegido.aviso && nota ? ' ' : ''}
+              {nota}
+            </p>
+          )}
+
+          {/* key: al cambiar de módulo se monta un iframe nuevo, no se navega el viejo */}
+          <div className="modulo" key={elegido.via}>
+            <iframe
+              src={LOCAL[elegido.via]}
+              title={elegido.via === 'tienda' ? 'Comprar tarjeta regalo' : 'Reservar en El Caldero Mágico'}
+              loading="lazy"
+              allow="payment"
+            />
+          </div>
+
+          <p className="nota">
+            {elegido.via === 'tienda' ? 'Pago seguro' : 'Reserva en tiempo real'} con el sistema
+            del local. ¿Se ve pequeño?{' '}
+            <a href={LOCAL[elegido.via]} target="_blank" rel="noreferrer">
+              Ábrelo en una pestaña
+            </a>{' '}
+            o llama al <a href={LOCAL.telefonoEnlace}>{LOCAL.telefono}</a>.
+          </p>
+        </>
+      )}
+    </div>
   );
 }

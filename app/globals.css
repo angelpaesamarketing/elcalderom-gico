@@ -1416,3 +1416,33 @@ button {
   opacity: 0;
   pointer-events: none;
 }
+
+
+/* ---------- módulo de CoverManager ---------- */
+
+/* El módulo del local es claro y trae su propio diseño: se le da un marco
+   limpio en vez de intentar disfrazarlo. */
+.modulo {
+  border-radius: 16px;
+  overflow: hidden;
+  background: #fff;
+  border: 1px solid var(--borde);
+}
+
+.modulo iframe {
+  display: block;
+  width: 100%;
+  height: min(860px, 78svh);
+  border: 0;
+}
+
+.reserva-tipos label:last-of-type {
+  grid-column: auto;
+}
+
+/* reservar necesita más ancho que leer: el panel se ensancha solo ahí */
+@media (min-width: 900px) {
+  .panel:has(.modulo) {
+    width: min(600px, 92vw);
+  }
+}
