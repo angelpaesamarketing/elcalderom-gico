@@ -23,7 +23,8 @@ const ESTRECHA = {
 // Sitio donde se queda el objeto elegido: arriba a la derecha del caldero,
 // lejos del panel de texto.
 const DESTINO_ANCHA = new THREE.Vector3(1.6, 1.45, 0.75);
-const DESTINO_ESTRECHA = new THREE.Vector3(0.0, 3.95, 0.3);
+// con la cámara bajada, el elegido flota junto a la boca del caldero
+const DESTINO_ESTRECHA = new THREE.Vector3(1.02, 1.2, 0.5);
 
 // Halo cálido para la opción destacada: un degradado radial dibujado a mano
 // sale más barato que cargar otra imagen.

@@ -31,6 +31,7 @@ export default function Scene({
   quality = 'alta',
   opciones,
   seleccion,
+  disparo,
   onSelect,
   giro,
   volar,
@@ -56,11 +57,22 @@ export default function Scene({
   const desde = useMemo(() => new THREE.Vector3(), []);
   const hasta = useMemo(() => new THREE.Vector3(), []);
 
-  // fogonazo al elegir una opción
+  // Fogonazo cada vez que cambia `disparo`: al elegir una opción y con cada
+  // respuesta del test. El primer valor es el de la carga y no cuenta.
   const fogonazo = useRef(0);
+  const estrenado = useRef(false);
   useEffect(() => {
+    if (!estrenado.current) {
+      estrenado.current = true;
+      return;
+    }
     if (seleccion) fogonazo.current = 1;
-  }, [seleccion]);
+  }, [disparo, seleccion]);
+
+  // En vertical la hoja tapa la parte baja de la pantalla, que es donde vive
+  // el caldero: con algo abierto la cámara baja la mirada y lo sube al hueco
+  // que queda arriba.
+  const subida = useRef(0);
 
   useFrame((state, delta) => {
     const { x, y } = state.pointer;
@@ -88,6 +100,12 @@ export default function Scene({
     hasta.fromArray(REPOSO[marco].mira);
     mira.lerpVectors(desde, hasta, p);
     mira.x -= apartar;
+    subida.current = THREE.MathUtils.lerp(
+      subida.current,
+      seleccion && compacto ? 1 : 0,
+      Math.min(1, delta * 2.6),
+    );
+    mira.y -= subida.current * 3.25;
     camera.lookAt(mira);
 
     // --- puntero sobre la poción ---
@@ -165,7 +183,7 @@ export default function Scene({
 
       <group ref={grupo} position={[0, -0.35, 0]}>
         <Suelo glow={glow} motion={motion} />
-        <Onda disparo={seleccion} glow={glow} motion={motion} />
+        <Onda disparo={seleccion ? disparo : null} glow={glow} motion={motion} />
         <Suspense fallback={null}>
           <CauldronMesh />
         </Suspense>

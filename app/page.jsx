@@ -2,11 +2,14 @@
 
 import dynamic from 'next/dynamic';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import Detalle from '@/components/Detalle';
 import Letras from '@/components/Letras';
+import Test from '@/components/Test';
 import { apagar, encender } from '@/lib/sonido';
 import { OPCIONES, REPOSO } from '@/lib/sections';
-import { BARRA, CARTA, CLASE } from '@/lib/carta';
 import { LOCAL } from '@/lib/local';
+import { medir } from '@/lib/medir';
+import { POCIONES } from '@/lib/test';
 
 // el lienzo solo existe en el navegador: no hay WebGL en el servidor
 const HeroCauldron = dynamic(() => import('@/components/cauldron/HeroCauldron'), {
@@ -30,119 +33,8 @@ function hayWebGL() {
   }
 }
 
-// El contenido propio de cada opción: la carta, la barra y la clase salen
-// del PDF del restaurante.
-function Detalle({ id }) {
-  if (id === 'carta') {
-    return (
-      <div className="detalle">
-        {CARTA.map((grupo) => (
-          <div key={grupo.grupo} className="grupo">
-            <h3>{grupo.grupo}</h3>
-            {grupo.platos.map((plato) => (
-              <div key={plato.nombre} className="plato">
-                <div className="plato-linea">
-                  <span className="plato-nombre">{plato.nombre}</span>
-                  <span className="plato-precio">{plato.precio} €</span>
-                </div>
-                <p>{plato.desc}</p>
-              </div>
-            ))}
-          </div>
-        ))}
-      </div>
-    );
-  }
-
-  if (id === 'cerveza') {
-    return (
-      <div className="detalle">
-        <div className="grupo">
-          <h3>Pociones y brebajes</h3>
-          {BARRA.map((bebida) => (
-            <div key={bebida.nombre} className="plato">
-              <div className="plato-linea">
-                <span className="plato-nombre">{bebida.nombre}</span>
-                <span className="plato-precio">{bebida.precio} €</span>
-              </div>
-              <p>{bebida.desc}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  if (id === 'pociones') {
-    return (
-      <div className="detalle">
-        <div className="precios">
-          <div>
-            <strong>{CLASE.conAlcohol} €</strong>
-            <span>con alcohol, por persona</span>
-          </div>
-          <div>
-            <strong>{CLASE.sinAlcohol} €</strong>
-            <span>sin alcohol, por persona</span>
-          </div>
-        </div>
-        <div className="grupo">
-          <h3>Elige dos pociones</h3>
-          <ul className="lista">
-            {CLASE.pociones.map((pocion) => (
-              <li key={pocion}>{pocion}</li>
-            ))}
-          </ul>
-          <p className="nota">
-            La primera siempre es la seleccionadora: el sombrero decide tu casa antes de
-            empezar. Túnica y varita incluidas.
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  if (id === 'llegar') {
-    return (
-      <div className="detalle">
-        <div className="grupo">
-          <h3>La dirección</h3>
-          <p className="direccion">
-            {LOCAL.calle}
-            <br />
-            {LOCAL.ciudad}
-          </p>
-          <p className="nota">
-            Estamos en el casco viejo, en calle estrecha y zona peatonal: lo más cómodo es
-            venir andando o dejar el coche en un parking del centro.
-          </p>
-        </div>
-
-        <div className="grupo">
-          <h3>Horario</h3>
-          <ul className="horario">
-            {LOCAL.horario.map((tramo) => (
-              <li key={tramo.dias} data-cerrado={Boolean(tramo.cerrado)}>
-                <span>{tramo.dias}</span>
-                <span>{tramo.horas}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        <div className="grupo">
-          <h3>¿Dudas?</h3>
-          <p className="nota">
-            Llámanos al <a href={LOCAL.telefonoEnlace}>{LOCAL.telefono}</a> y te decimos
-            cómo llegar desde donde estés.
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  return null;
-}
+// El caldero antes de la primera respuesta del test: ni una poción ni otra.
+const NIEBLA = { potion: '#8ea2e8', glow: '#dfe6ff' };
 
 export default function Home() {
   const [seleccion, setSeleccion] = useState(null);
@@ -151,6 +43,14 @@ export default function Home() {
   const [estrecha, setEstrecha] = useState(false);
   const [entrando, setEntrando] = useState(true);
   const [sonando, setSonando] = useState(false);
+  // con qué llega relleno el formulario de reserva
+  const [reserva, setReserva] = useState({ tipo: 'mesa', nota: '' });
+  // el test tiñe el caldero y lanza una onda con cada respuesta
+  const [tinte, setTinte] = useState(null);
+  const [pulso, setPulso] = useState(0);
+  // poción de quien te mandó el enlace, si vienes de uno compartido
+  const [reto, setReto] = useState(null);
+  const panel = useRef(null);
   const [escenaLista, setEscenaLista] = useState(false);
   const [calidad, setCalidad] = useState('alta');
   const [movimiento, setMovimiento] = useState(1);
@@ -198,6 +98,27 @@ export default function Home() {
     return () => clearTimeout(reloj);
   }, [escenaLista]);
 
+  // Un enlace compartido (?pocion=amor) abre el test nada más entrar, con
+  // el resultado de quien lo mandó como reto.
+  useEffect(() => {
+    const id = new URLSearchParams(window.location.search).get('pocion');
+    if (id && POCIONES[id]) setReto(id);
+  }, []);
+
+  useEffect(() => {
+    if (!reto || entrando) return undefined;
+    const reloj = setTimeout(() => {
+      setSeleccion((actual) => actual ?? 'test');
+      medir('test_abierto', { origen: 'enlace' });
+    }, 900);
+    return () => clearTimeout(reloj);
+  }, [reto, entrando]);
+
+  // cada sección empieza arriba, aunque la anterior se quedara a medias
+  useEffect(() => {
+    if (panel.current) panel.current.scrollTop = 0;
+  }, [seleccion, reserva]);
+
   // Escape cierra lo que esté abierto: primero el menú, luego el detalle
   useEffect(() => {
     const alPulsar = (evento) => {
@@ -205,6 +126,7 @@ export default function Home() {
       setMenu((abierto) => {
         if (abierto) return false;
         setSeleccion(null);
+        setTinte(null);
         return false;
       });
     };
@@ -256,13 +178,47 @@ export default function Home() {
     setSonando(listo);
   };
 
-  const abrir = (id) => {
+  const abrir = (id, origen = 'menu') => {
     setSeleccion(id);
+    setTinte(null);
     setMenu(false);
+    medir('seccion_abierta', { seccion: id, origen });
   };
 
+  // Todo botón de reservar acaba aquí: abre el formulario ya relleno con lo
+  // que el usuario estaba mirando.
+  const reservar = (tipo = 'mesa', nota = '', origen = 'boton') => {
+    setReserva({ tipo, nota });
+    setSeleccion('reservas');
+    setTinte(null);
+    setMenu(false);
+    medir('reserva_abierta', { tipo, origen });
+  };
+
+  const empezarTest = (origen) => {
+    setSeleccion('test');
+    setTinte(null);
+    setMenu(false);
+    medir('test_abierto', { origen });
+  };
+
+  const teñir = (id) => {
+    setTinte(id);
+    if (id) setPulso((n) => n + 1);
+  };
+
+  const volver = () => {
+    setSeleccion(null);
+    setTinte(null);
+  };
+
+  const enTest = seleccion === 'test';
   const activa = OPCIONES.find((o) => o.id === seleccion);
-  const colores = activa ?? REPOSO;
+  const colores = enTest
+    ? tinte
+      ? { potion: POCIONES[tinte].color, glow: POCIONES[tinte].brillo }
+      : NIEBLA
+    : (activa ?? REPOSO);
 
   return (
     <main
@@ -297,7 +253,8 @@ export default function Home() {
             onListo={() => setEscenaLista(true)}
             opciones={OPCIONES}
             seleccion={seleccion}
-            onSelect={setSeleccion}
+            disparo={`${seleccion ?? ''}|${pulso}`}
+            onSelect={(id) => (id === 'reservas' ? reservar('mesa', '', 'orbita') : abrir(id, 'orbita'))}
             giro={giro}
           />
         ) : (
@@ -307,7 +264,7 @@ export default function Home() {
       <div className="escena-velo" aria-hidden="true" />
 
       <header className="cabecera">
-        <button className="marca" type="button" onClick={() => { setSeleccion(null); setMenu(false); }}>
+        <button className="marca" type="button" onClick={() => { volver(); setMenu(false); }}>
           <img src="/marca/logo.png" alt="El Caldero Mágico" />
         </button>
 
@@ -328,9 +285,13 @@ export default function Home() {
           </button>
 
           {/* el botón que más importa, siempre a la vista */}
-          <a className="boton boton-lleno solo-ancho-flex" href={LOCAL.reservar}>
+          <button
+            className="boton boton-lleno solo-ancho-flex"
+            type="button"
+            onClick={() => reservar('mesa', '', 'cabecera')}
+          >
             Reservar
-          </a>
+          </button>
 
           {/* Por si la órbita no se entiende a la primera: el mismo menú,
               donde todo el mundo lo busca. */}
@@ -364,15 +325,20 @@ export default function Home() {
             <button
               key={opcion.id}
               type="button"
-              onClick={() => abrir(opcion.id)}
+              onClick={() => (opcion.destacado ? reservar('mesa', '', 'menu') : abrir(opcion.id))}
               data-destacado={Boolean(opcion.destacado)}
               style={{ '--tinte': opcion.potion }}
             >
               <img src={`/recortables/${opcion.icon}.webp`} alt="" aria-hidden="true" />
               <span>{opcion.destacado ? 'Reservar mesa' : opcion.nav}</span>
-              {opcion.destacado && <span className="cortina-pista">Llámanos y listo</span>}
+              {opcion.destacado && <span className="cortina-pista">En veinte segundos</span>}
             </button>
           ))}
+          <button type="button" className="cortina-test" onClick={() => empezarTest('menu')}>
+            <span className="chispa" aria-hidden="true">✦</span>
+            <span>¿Qué poción eres?</span>
+            <span className="cortina-pista">Haz el test</span>
+          </button>
         </nav>
 
         <div className="cortina-pie">
@@ -380,12 +346,8 @@ export default function Home() {
           <a href={LOCAL.mapa} target="_blank" rel="noreferrer">
             {LOCAL.calle}
           </a>
-          <a
-            href="https://www.instagram.com/elcalderomagico.zaragoza/"
-            target="_blank"
-            rel="noreferrer"
-          >
-            @elcalderomagico.zaragoza
+          <a href={LOCAL.instagram} target="_blank" rel="noreferrer">
+            {LOCAL.instagramNombre}
           </a>
         </div>
       </div>
@@ -404,6 +366,11 @@ export default function Home() {
           <span className="solo-estrecho">Elige por dónde quieres empezar.</span>
         </p>
 
+        <button className="boton boton-test" type="button" onClick={() => empezarTest('portada')}>
+          <span className="chispa" aria-hidden="true">✦</span>
+          ¿Qué poción eres?
+        </button>
+
         {/* El mismo menú sirve en las dos pantallas y hace de alternativa
             accesible: en ancho son enlaces de texto junto a la órbita, en
             vertical son tarjetas grandes con el objeto de cada opción, que
@@ -413,7 +380,7 @@ export default function Home() {
             <button
               key={opcion.id}
               type="button"
-              onClick={() => abrir(opcion.id)}
+              onClick={() => (opcion.destacado ? reservar('mesa', '', 'portada') : abrir(opcion.id, 'portada'))}
               style={{ '--retardo': `${indice * 45}ms`, '--tinte': opcion.potion }}
             >
               <img src={`/recortables/${opcion.icon}.webp`} alt="" aria-hidden="true" />
@@ -423,11 +390,24 @@ export default function Home() {
         </nav>
       </section>
 
-      {/* Detalle de la opción elegida */}
-      <section className="panel" aria-hidden={!seleccion}>
+      {/* Detalle de la opción elegida, o el test */}
+      <section className="panel" ref={panel} aria-hidden={!seleccion} data-test={enTest}>
+        {enTest && (
+          <div className="panel-caja">
+            <button className="volver" type="button" onClick={volver}>
+              ← Volver al caldero
+            </button>
+            <Test
+              alTeñir={teñir}
+              alReservar={(nombre) => reservar('clase', `Quiero preparar la ${nombre}.`, 'test')}
+              reto={reto}
+            />
+          </div>
+        )}
+
         {activa && (
           <div className="panel-caja">
-            <button className="volver" type="button" onClick={() => setSeleccion(null)}>
+            <button className="volver" type="button" onClick={volver}>
               ← Volver al caldero
             </button>
 
@@ -437,16 +417,26 @@ export default function Home() {
             </h2>
             <p className="entrada">{activa.body}</p>
 
-            <Detalle id={activa.id} />
+            <Detalle
+              id={activa.id}
+              reserva={reserva}
+              alReservar={(tipo) => reservar(tipo, '', activa.id)}
+              alTest={() => empezarTest('clase')}
+            />
 
-            {activa.id === 'llegar' ? (
-              <a className="boton" href={LOCAL.mapa} target="_blank" rel="noreferrer">
+            {activa.id === 'llegar' && (
+              <a className="boton boton-lleno" href={LOCAL.mapa} target="_blank" rel="noreferrer">
                 {activa.cta}
               </a>
-            ) : (
-              <a className="boton" href={activa.href ?? LOCAL.telefonoEnlace}>
+            )}
+            {activa.reserva && (
+              <button
+                className="boton boton-lleno"
+                type="button"
+                onClick={() => reservar(activa.reserva, '', activa.id)}
+              >
                 {activa.cta}
-              </a>
+              </button>
             )}
           </div>
         )}
@@ -464,16 +454,22 @@ export default function Home() {
 
       {/* En vertical no hay sitio para un botón en la cabecera: va fijo
           abajo, al alcance del pulgar, y se aparta cuando hay algo abierto. */}
-      <a className="reservar-fijo" href={LOCAL.reservar}>
-        Reservar mesa
-      </a>
+      <div className="fijo">
+        <button className="fijo-test" type="button" onClick={() => empezarTest('movil')}>
+          <span className="chispa" aria-hidden="true">✦</span>
+          ¿Qué poción eres?
+        </button>
+        <button className="reservar-fijo" type="button" onClick={() => reservar('mesa', '', 'barra')}>
+          Reservar mesa
+        </button>
+      </div>
 
       <footer className="pie">
         <a href={LOCAL.mapa} target="_blank" rel="noreferrer">
           {LOCAL.calle}
         </a>
-        <a href="https://www.instagram.com/elcalderomagico.zaragoza/" target="_blank" rel="noreferrer">
-          @elcalderomagico.zaragoza
+        <a href={LOCAL.instagram} target="_blank" rel="noreferrer">
+          {LOCAL.instagramNombre}
         </a>
         <span className="pie-nota">
           Sin relación con Warner Bros, Wizarding World ni ninguna otra película o serie.
